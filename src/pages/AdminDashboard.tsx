@@ -1,10 +1,10 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 import {
   Table,
@@ -14,6 +14,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 interface Client {
   id: number;
@@ -38,19 +44,61 @@ interface Client {
   wifiPassword: string;
 }
 
+interface Plan {
+  id: number;
+  name: string;
+  price: number;
+  description: string;
+}
+
 const AdminDashboard = () => {
   const { isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [newPlan, setNewPlan] = useState<Omit<Plan, 'id'>>({
+    name: '',
+    price: 0,
+    description: ''
+  });
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/admin");
+      return;
     }
     const savedClients = JSON.parse(localStorage.getItem("clients") || "[]");
+    const savedPlans = JSON.parse(localStorage.getItem("plans") || "[]");
     setClients(savedClients);
+    setPlans(savedPlans);
   }, [isAuthenticated, navigate]);
+
+  const handleAddPlan = () => {
+    const plan = {
+      ...newPlan,
+      id: Date.now(),
+    };
+    const updatedPlans = [...plans, plan];
+    setPlans(updatedPlans);
+    localStorage.setItem("plans", JSON.stringify(updatedPlans));
+    setNewPlan({ name: '', price: 0, description: '' });
+    toast({
+      title: "Plano adicionado",
+      description: "O novo plano foi cadastrado com sucesso",
+    });
+  };
+
+  const handleDeletePlan = (id: number) => {
+    const updatedPlans = plans.filter(plan => plan.id !== id);
+    setPlans(updatedPlans);
+    localStorage.setItem("plans", JSON.stringify(updatedPlans));
+    toast({
+      title: "Plano removido",
+      description: "O plano foi removido com sucesso",
+    });
+  };
 
   const handlePrint = (client: Client) => {
     const printWindow = window.open("", "_blank");
@@ -147,51 +195,124 @@ const AdminDashboard = () => {
           </Button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-6 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>E-mail</TableHead>
-                <TableHead>CPF/CNPJ</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead>Plano</TableHead>
-                <TableHead>Vencimento</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {clients.map((client) => (
-                <TableRow key={client.id}>
-                  <TableCell>{client.name}</TableCell>
-                  <TableCell>{client.email}</TableCell>
-                  <TableCell>{client.document}</TableCell>
-                  <TableCell>{client.phone}</TableCell>
-                  <TableCell>{client.plan}</TableCell>
-                  <TableCell>{client.dueDate}</TableCell>
-                  <TableCell>
-                    <div className="space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(client)}
-                      >
-                        Editar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePrint(client)}
-                      >
-                        Imprimir
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <Tabs defaultValue="clients" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="clients">Clientes</TabsTrigger>
+            <TabsTrigger value="plans">Planos</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="clients" className="space-y-4">
+            <div className="bg-white rounded-lg shadow-lg p-6 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>E-mail</TableHead>
+                    <TableHead>CPF/CNPJ</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>Plano</TableHead>
+                    <TableHead>Vencimento</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {clients.map((client) => (
+                    <TableRow key={client.id}>
+                      <TableCell>{client.name}</TableCell>
+                      <TableCell>{client.email}</TableCell>
+                      <TableCell>{client.document}</TableCell>
+                      <TableCell>{client.phone}</TableCell>
+                      <TableCell>{client.plan}</TableCell>
+                      <TableCell>{client.dueDate}</TableCell>
+                      <TableCell>
+                        <div className="space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(client)}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePrint(client)}
+                          >
+                            Imprimir
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="plans" className="space-y-4">
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="space-y-2">
+                  <Label htmlFor="plan-name">Nome do Plano</Label>
+                  <Input
+                    id="plan-name"
+                    value={newPlan.name}
+                    onChange={(e) => setNewPlan({ ...newPlan, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="plan-price">Preço</Label>
+                  <Input
+                    id="plan-price"
+                    type="number"
+                    value={newPlan.price}
+                    onChange={(e) => setNewPlan({ ...newPlan, price: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="plan-description">Descrição</Label>
+                  <Input
+                    id="plan-description"
+                    value={newPlan.description}
+                    onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
+                  />
+                </div>
+              </div>
+              <Button onClick={handleAddPlan} className="w-full mb-6">
+                Adicionar Plano
+              </Button>
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Preço</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {plans.map((plan) => (
+                    <TableRow key={plan.id}>
+                      <TableCell>{plan.name}</TableCell>
+                      <TableCell>R$ {plan.price.toFixed(2)}</TableCell>
+                      <TableCell>{plan.description}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeletePlan(plan.id)}
+                        >
+                          Excluir
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {selectedClient && (
           <motion.div

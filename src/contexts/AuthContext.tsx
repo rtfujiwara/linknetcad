@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -16,10 +16,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  useEffect(() => {
+    const authStatus = localStorage.getItem("isAuthenticated");
+    if (authStatus === "true") {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
   const login = (username: string, password: string) => {
-    // Simples simulação de autenticação - em produção, use uma solução segura
     if (username === "admin" && password === "admin") {
       setIsAuthenticated(true);
+      localStorage.setItem("isAuthenticated", "true");
       navigate("/admin/dashboard");
       toast({
         title: "Login realizado com sucesso",
@@ -36,6 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     setIsAuthenticated(false);
+    localStorage.removeItem("isAuthenticated");
     navigate("/admin");
     toast({
       title: "Logout realizado",

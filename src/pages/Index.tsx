@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,8 +50,13 @@ const Index = () => {
     wifiName: "",
     wifiPassword: "",
   });
-  
+  const [plans, setPlans] = useState<{ id: number; name: string; price: number; description: string; }[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const savedPlans = JSON.parse(localStorage.getItem("plans") || "[]");
+    setPlans(savedPlans);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -267,12 +271,20 @@ const Index = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="plan">Plano *</Label>
-                <Input
+                <select
                   id="plan"
                   required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
                   value={formData.plan}
                   onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
-                />
+                >
+                  <option value="">Selecione um plano</option>
+                  {plans.map((plan) => (
+                    <option key={plan.id} value={plan.name}>
+                      {plan.name} - R$ {plan.price.toFixed(2)}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-2">
