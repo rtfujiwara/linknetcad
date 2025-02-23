@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,8 +19,23 @@ interface Client {
   id: number;
   name: string;
   email: string;
-  phone: string;
+  document: string;
+  rgIe: string;
+  birthDate: string;
   address: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  condoName: string;
+  phone: string;
+  alternativePhone: string;
+  plan: string;
+  dueDate: string;
+  wifiName: string;
+  wifiPassword: string;
 }
 
 const AdminDashboard = () => {
@@ -32,7 +48,6 @@ const AdminDashboard = () => {
     if (!isAuthenticated) {
       navigate("/admin");
     }
-    // Carregar clientes do localStorage
     const savedClients = JSON.parse(localStorage.getItem("clients") || "[]");
     setClients(savedClients);
   }, [isAuthenticated, navigate]);
@@ -78,8 +93,22 @@ const AdminDashboard = () => {
             <div class="client-info">
               <p><strong>Nome:</strong> ${client.name}</p>
               <p><strong>E-mail:</strong> ${client.email}</p>
+              <p><strong>CPF/CNPJ:</strong> ${client.document}</p>
+              <p><strong>RG/IE:</strong> ${client.rgIe}</p>
+              <p><strong>Data de Nascimento:</strong> ${client.birthDate}</p>
+              <p><strong>Endereço:</strong> ${client.address}, ${client.number}</p>
+              <p><strong>Complemento:</strong> ${client.complement || '-'}</p>
+              <p><strong>Bairro:</strong> ${client.neighborhood}</p>
+              <p><strong>Cidade:</strong> ${client.city}</p>
+              <p><strong>Estado:</strong> ${client.state}</p>
+              <p><strong>CEP:</strong> ${client.zipCode}</p>
+              <p><strong>Condomínio:</strong> ${client.condoName || '-'}</p>
               <p><strong>Telefone:</strong> ${client.phone}</p>
-              <p><strong>Endereço:</strong> ${client.address}</p>
+              <p><strong>Telefone Recado:</strong> ${client.alternativePhone || '-'}</p>
+              <p><strong>Plano:</strong> ${client.plan}</p>
+              <p><strong>Vencimento:</strong> ${client.dueDate}</p>
+              <p><strong>Nome do Wi-Fi:</strong> ${client.wifiName || '-'}</p>
+              <p><strong>Senha do Wi-Fi:</strong> ${client.wifiPassword || '-'}</p>
             </div>
             <button class="no-print" onclick="window.print()">Imprimir</button>
           </body>
@@ -108,7 +137,7 @@ const AdminDashboard = () => {
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gray-50 p-6"
     >
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-[95%] mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-gray-800">
             Painel Administrativo
@@ -118,14 +147,16 @@ const AdminDashboard = () => {
           </Button>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="bg-white rounded-lg shadow-lg p-6 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>E-mail</TableHead>
+                <TableHead>CPF/CNPJ</TableHead>
                 <TableHead>Telefone</TableHead>
-                <TableHead>Endereço</TableHead>
+                <TableHead>Plano</TableHead>
+                <TableHead>Vencimento</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -134,8 +165,10 @@ const AdminDashboard = () => {
                 <TableRow key={client.id}>
                   <TableCell>{client.name}</TableCell>
                   <TableCell>{client.email}</TableCell>
+                  <TableCell>{client.document}</TableCell>
                   <TableCell>{client.phone}</TableCell>
-                  <TableCell>{client.address}</TableCell>
+                  <TableCell>{client.plan}</TableCell>
+                  <TableCell>{client.dueDate}</TableCell>
                   <TableCell>
                     <div className="space-x-2">
                       <Button
@@ -164,12 +197,12 @@ const AdminDashboard = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 overflow-y-auto"
           >
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl my-8">
               <h2 className="text-xl font-semibold mb-4">Editar Cliente</h2>
-              <div className="space-y-4">
-                <div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <Label htmlFor="edit-name">Nome</Label>
                   <Input
                     id="edit-name"
@@ -182,7 +215,8 @@ const AdminDashboard = () => {
                     }
                   />
                 </div>
-                <div>
+                
+                <div className="space-y-2">
                   <Label htmlFor="edit-email">E-mail</Label>
                   <Input
                     id="edit-email"
@@ -195,20 +229,51 @@ const AdminDashboard = () => {
                     }
                   />
                 </div>
-                <div>
-                  <Label htmlFor="edit-phone">Telefone</Label>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-document">CPF/CNPJ</Label>
                   <Input
-                    id="edit-phone"
-                    value={selectedClient.phone}
+                    id="edit-document"
+                    value={selectedClient.document}
                     onChange={(e) =>
                       setSelectedClient({
                         ...selectedClient,
-                        phone: e.target.value,
+                        document: e.target.value,
                       })
                     }
                   />
                 </div>
-                <div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-rgIe">RG/IE</Label>
+                  <Input
+                    id="edit-rgIe"
+                    value={selectedClient.rgIe}
+                    onChange={(e) =>
+                      setSelectedClient({
+                        ...selectedClient,
+                        rgIe: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-birthDate">Data de Nascimento</Label>
+                  <Input
+                    id="edit-birthDate"
+                    type="date"
+                    value={selectedClient.birthDate}
+                    onChange={(e) =>
+                      setSelectedClient({
+                        ...selectedClient,
+                        birthDate: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="edit-address">Endereço</Label>
                   <Input
                     id="edit-address"
@@ -221,17 +286,202 @@ const AdminDashboard = () => {
                     }
                   />
                 </div>
-                <div className="flex justify-end space-x-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setSelectedClient(null)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button onClick={() => handleSave(selectedClient)}>
-                    Salvar
-                  </Button>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-number">Número</Label>
+                  <Input
+                    id="edit-number"
+                    value={selectedClient.number}
+                    onChange={(e) =>
+                      setSelectedClient({
+                        ...selectedClient,
+                        number: e.target.value,
+                      })
+                    }
+                  />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-complement">Complemento</Label>
+                  <Input
+                    id="edit-complement"
+                    value={selectedClient.complement}
+                    onChange={(e) =>
+                      setSelectedClient({
+                        ...selectedClient,
+                        complement: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-neighborhood">Bairro</Label>
+                  <Input
+                    id="edit-neighborhood"
+                    value={selectedClient.neighborhood}
+                    onChange={(e) =>
+                      setSelectedClient({
+                        ...selectedClient,
+                        neighborhood: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-city">Cidade</Label>
+                  <Input
+                    id="edit-city"
+                    value={selectedClient.city}
+                    onChange={(e) =>
+                      setSelectedClient({
+                        ...selectedClient,
+                        city: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-state">Estado</Label>
+                  <Input
+                    id="edit-state"
+                    value={selectedClient.state}
+                    onChange={(e) =>
+                      setSelectedClient({
+                        ...selectedClient,
+                        state: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-zipCode">CEP</Label>
+                  <Input
+                    id="edit-zipCode"
+                    value={selectedClient.zipCode}
+                    onChange={(e) =>
+                      setSelectedClient({
+                        ...selectedClient,
+                        zipCode: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-condoName">Nome do Condomínio</Label>
+                  <Input
+                    id="edit-condoName"
+                    value={selectedClient.condoName}
+                    onChange={(e) =>
+                      setSelectedClient({
+                        ...selectedClient,
+                        condoName: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-phone">Telefone</Label>
+                  <Input
+                    id="edit-phone"
+                    value={selectedClient.phone}
+                    onChange={(e) =>
+                      setSelectedClient({
+                        ...selectedClient,
+                        phone: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-alternativePhone">Telefone Recado</Label>
+                  <Input
+                    id="edit-alternativePhone"
+                    value={selectedClient.alternativePhone}
+                    onChange={(e) =>
+                      setSelectedClient({
+                        ...selectedClient,
+                        alternativePhone: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-plan">Plano</Label>
+                  <Input
+                    id="edit-plan"
+                    value={selectedClient.plan}
+                    onChange={(e) =>
+                      setSelectedClient({
+                        ...selectedClient,
+                        plan: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-dueDate">Data de Vencimento</Label>
+                  <Input
+                    id="edit-dueDate"
+                    type="date"
+                    value={selectedClient.dueDate}
+                    onChange={(e) =>
+                      setSelectedClient({
+                        ...selectedClient,
+                        dueDate: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-wifiName">Nome do Wi-Fi</Label>
+                  <Input
+                    id="edit-wifiName"
+                    value={selectedClient.wifiName}
+                    onChange={(e) =>
+                      setSelectedClient({
+                        ...selectedClient,
+                        wifiName: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-wifiPassword">Senha do Wi-Fi</Label>
+                  <Input
+                    id="edit-wifiPassword"
+                    type="password"
+                    value={selectedClient.wifiPassword}
+                    onChange={(e) =>
+                      setSelectedClient({
+                        ...selectedClient,
+                        wifiPassword: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedClient(null)}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={() => handleSave(selectedClient)}>
+                  Salvar
+                </Button>
               </div>
             </div>
           </motion.div>
