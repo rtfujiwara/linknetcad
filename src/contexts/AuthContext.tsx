@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setIsAuthenticated(false);
     localStorage.removeItem("isAuthenticated");
-    navigate("/admin");
+    navigate("/");
     toast({
       title: "Logout realizado",
       description: "Você foi desconectado com sucesso",
