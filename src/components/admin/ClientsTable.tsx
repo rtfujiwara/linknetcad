@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Client } from "@/types/client";
+import { ViewClientData } from "./ViewClientData";
 
 interface ClientsTableProps {
   clients: Client[];
@@ -42,6 +43,7 @@ export const ClientsTable = ({ clients, onEdit, onPrint }: ClientsTableProps) =>
               <TableCell>{client.dueDate}</TableCell>
               <TableCell>
                 <div className="space-x-2">
+                  <ViewClientData client={client} />
                   <Button
                     variant="outline"
                     size="sm"

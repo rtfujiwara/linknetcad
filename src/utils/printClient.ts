@@ -21,10 +21,11 @@ export const printClient = (client: any) => {
               display: flex;
               align-items: center;
               justify-content: center;
-              gap: 20px;
+              gap: 30px;
+              padding: 20px 0;
             }
             .header img {
-              height: 30px;
+              height: 60px;
               width: auto;
             }
             .header h2 {
