@@ -18,6 +18,14 @@ export const printClient = (client: any) => {
             .header {
               text-align: center;
               margin-bottom: 30px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 20px;
+            }
+            .header img {
+              height: 30px;
+              width: auto;
             }
             .header h2 {
               margin: 0;
@@ -83,6 +91,7 @@ export const printClient = (client: any) => {
         </head>
         <body>
           <div class="header">
+            <img src="/lovable-uploads/24ee217e-48fb-44ac-bc9a-8bf49825944c.png" alt="Linknet Vale Logo" />
             <h2>Proposta de Adesão</h2>
           </div>
 
