@@ -92,6 +92,12 @@ const Index = () => {
     });
   };
 
+  const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 2);
+    if (Number(value) > 31) return;
+    setFormData({ ...formData, dueDate: value });
+  };
+
   const requiredField = "Campo obrigatório";
 
   return (
@@ -288,13 +294,14 @@ const Index = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="dueDate">Data de Vencimento *</Label>
+                <Label htmlFor="dueDate">Dia de Vencimento *</Label>
                 <Input
                   id="dueDate"
-                  type="date"
                   required
+                  maxLength={2}
+                  placeholder="Ex: 05"
                   value={formData.dueDate}
-                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                  onChange={handleDueDateChange}
                 />
               </div>
             </div>
@@ -313,7 +320,6 @@ const Index = () => {
                 <Label htmlFor="wifiPassword">Senha do Wi-Fi</Label>
                 <Input
                   id="wifiPassword"
-                  type="password"
                   value={formData.wifiPassword}
                   onChange={(e) => setFormData({ ...formData, wifiPassword: e.target.value })}
                 />

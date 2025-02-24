@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +17,12 @@ export const EditClientModal = ({
   onCancel,
   onChange,
 }: EditClientModalProps) => {
+  const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 2);
+    if (Number(value) > 31) return;
+    onChange({ ...client, dueDate: value });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -173,12 +178,13 @@ export const EditClientModal = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-dueDate">Data de Vencimento</Label>
+            <Label htmlFor="edit-dueDate">Dia de Vencimento</Label>
             <Input
               id="edit-dueDate"
-              type="date"
+              maxLength={2}
+              placeholder="Ex: 05"
               value={client.dueDate}
-              onChange={(e) => onChange({ ...client, dueDate: e.target.value })}
+              onChange={handleDueDateChange}
             />
           </div>
 
@@ -195,7 +201,6 @@ export const EditClientModal = ({
             <Label htmlFor="edit-wifiPassword">Senha do Wi-Fi</Label>
             <Input
               id="edit-wifiPassword"
-              type="password"
               value={client.wifiPassword}
               onChange={(e) => onChange({ ...client, wifiPassword: e.target.value })}
             />
