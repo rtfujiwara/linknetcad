@@ -18,8 +18,6 @@ const App = () => (
     <BrowserRouter>
       <AuthProvider>
         <TooltipProvider>
-          <Toaster />
-          <Sonner />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/register" element={<Index />} />
@@ -27,6 +25,8 @@ const App = () => (
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <Toaster />
+          <Sonner />
         </TooltipProvider>
       </AuthProvider>
     </BrowserRouter>
