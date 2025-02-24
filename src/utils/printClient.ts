@@ -17,58 +17,66 @@ export const printClient = (client: any) => {
             }
             .header {
               text-align: center;
-              margin-bottom: 20px;
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
+              margin-bottom: 30px;
             }
             .header h2 {
               margin: 0;
               text-transform: uppercase;
-              font-size: 14px;
+              font-size: 16px;
+              font-weight: bold;
             }
             .section-title {
-              background-color: #f0f0f0;
-              padding: 5px;
-              margin: 15px 0 10px 0;
+              background-color: #e0e0e0;
+              padding: 5px 10px;
+              margin: 20px 0 10px 0;
               font-weight: bold;
               text-transform: uppercase;
-              font-size: 12px;
+              font-size: 13px;
             }
             .client-info {
               width: 100%;
+              border-collapse: collapse;
               margin-bottom: 15px;
             }
             .client-info tr td {
-              border-bottom: 1px solid #ccc;
-              padding: 5px 2px;
+              padding: 8px 5px;
+              border-bottom: 1px solid #999;
+              line-height: 1.4;
             }
             .client-info td:first-child {
               font-weight: bold;
-              width: 150px;
+              width: 200px;
             }
             .footer {
-              margin-top: 40px;
+              margin-top: 50px;
+            }
+            .date-line {
+              margin-bottom: 50px;
             }
             .signatures {
               display: flex;
               justify-content: space-between;
-              margin-top: 60px;
+              margin: 60px 40px;
             }
             .signature-line {
-              width: 200px;
+              width: 250px;
               border-top: 1px solid black;
               text-align: center;
               padding-top: 5px;
+              font-weight: bold;
             }
             .company-info {
-              margin-top: 40px;
+              margin-top: 60px;
               text-align: center;
-              font-size: 10px;
+              font-size: 11px;
+              line-height: 1.6;
             }
             @media print {
               .no-print {
                 display: none;
+              }
+              @page {
+                margin: 20mm;
               }
             }
           </style>
@@ -76,7 +84,6 @@ export const printClient = (client: any) => {
         <body>
           <div class="header">
             <h2>Proposta de Adesão</h2>
-            <img src="/lovable-uploads/ec3a75ed-2bd7-4293-a6b5-2730317a11d2.png" alt="Logo" style="height: 50px;" />
           </div>
 
           <div class="section-title">DADOS CADASTRAIS</div>
@@ -99,7 +106,7 @@ export const printClient = (client: any) => {
           </table>
 
           <div class="footer">
-            <div>Jacarei, _____ de __________________ de ${new Date().getFullYear()}</div>
+            <div class="date-line">Jacarei, _____ de __________________ de ${new Date().getFullYear()}</div>
             
             <div class="signatures">
               <div class="signature-line">CONTRATADA</div>
