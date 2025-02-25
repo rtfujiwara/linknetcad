@@ -8,22 +8,22 @@ const Home = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-700 relative overflow-hidden"
+      className="min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white relative overflow-hidden"
     >
       {/* Efeito de fibra óptica */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,190,255,0.3)_0%,rgba(0,50,150,0.6)_100%)]"></div>
+      <div className="absolute inset-0">
+        <div className="absolute w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(59,130,246,0.2)_0%,rgba(37,99,235,0.3)_100%)]"></div>
         {Array.from({ length: 20 }).map((_, i) => (
           <div
             key={i}
-            className="absolute h-[2px] bg-blue-400"
+            className="absolute h-[3px] bg-blue-500"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
               width: `${Math.random() * 200 + 100}px`,
               transform: `rotate(${Math.random() * 360}deg)`,
-              opacity: Math.random() * 0.5 + 0.2,
-              boxShadow: '0 0 10px rgba(120,190,255,0.8)',
+              opacity: Math.random() * 0.7 + 0.3,
+              boxShadow: '0 0 15px rgba(59,130,246,0.8)',
             }}
           ></div>
         ))}
@@ -52,9 +52,9 @@ const Home = () => {
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="bg-white/10 backdrop-blur-sm rounded-lg shadow-lg p-8 space-y-6"
+            className="bg-white/30 backdrop-blur-sm rounded-lg shadow-lg p-8 space-y-6"
           >
-            <h1 className="text-3xl font-bold text-center text-white mb-8">
+            <h1 className="text-3xl font-bold text-center text-blue-900 mb-8">
               Bem-vindo à LINKNET
             </h1>
             

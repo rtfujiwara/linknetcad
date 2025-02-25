@@ -79,22 +79,22 @@ const AdminDashboard = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-700 relative overflow-hidden p-6"
+      className="min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white relative overflow-hidden p-6"
     >
       {/* Efeito de fibra óptica */}
-      <div className="absolute inset-0 opacity-10 pointer-events-none">
-        <div className="absolute w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,190,255,0.3)_0%,rgba(0,50,150,0.6)_100%)]"></div>
+      <div className="absolute inset-0">
+        <div className="absolute w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(59,130,246,0.2)_0%,rgba(37,99,235,0.3)_100%)]"></div>
         {Array.from({ length: 20 }).map((_, i) => (
           <div
             key={i}
-            className="absolute h-[2px] bg-blue-400"
+            className="absolute h-[3px] bg-blue-500"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
               width: `${Math.random() * 200 + 100}px`,
               transform: `rotate(${Math.random() * 360}deg)`,
-              opacity: Math.random() * 0.5 + 0.2,
-              boxShadow: '0 0 10px rgba(120,190,255,0.8)',
+              opacity: Math.random() * 0.7 + 0.3,
+              boxShadow: '0 0 15px rgba(59,130,246,0.8)',
             }}
           ></div>
         ))}
@@ -111,24 +111,24 @@ const AdminDashboard = () => {
             className="w-32 mb-6"
           />
           <div className="flex justify-between items-center w-full">
-            <h1 className="text-2xl font-semibold text-white">
+            <h1 className="text-2xl font-semibold text-blue-900">
               Painel Administrativo
             </h1>
-            <Button onClick={logout} variant="outline" className="bg-white/10 text-white hover:bg-white/20">
+            <Button onClick={logout} variant="outline" className="border-blue-300 text-blue-900 hover:bg-blue-50">
               Sair
             </Button>
           </div>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6">
+        <div className="bg-white/30 backdrop-blur-sm rounded-lg p-6 shadow-lg">
           <Tabs defaultValue="clients" className="space-y-4">
-            <TabsList className="bg-white/20">
-              <TabsTrigger value="clients" className="data-[state=active]:bg-blue-600 text-white">Clientes</TabsTrigger>
+            <TabsList className="bg-white/50">
+              <TabsTrigger value="clients" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-900">Clientes</TabsTrigger>
               {hasPermission("manage_plans") && (
-                <TabsTrigger value="plans" className="data-[state=active]:bg-blue-600 text-white">Planos</TabsTrigger>
+                <TabsTrigger value="plans" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-900">Planos</TabsTrigger>
               )}
               {hasPermission("manage_users") && (
-                <TabsTrigger value="users" className="data-[state=active]:bg-blue-600 text-white">Usuários</TabsTrigger>
+                <TabsTrigger value="users" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-900">Usuários</TabsTrigger>
               )}
             </TabsList>
 

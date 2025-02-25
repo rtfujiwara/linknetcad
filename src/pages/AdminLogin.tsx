@@ -46,22 +46,22 @@ const AdminLogin = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-700 relative overflow-hidden p-4"
+      className="min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white relative overflow-hidden p-4"
     >
       {/* Efeito de fibra óptica */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,190,255,0.3)_0%,rgba(0,50,150,0.6)_100%)]"></div>
+      <div className="absolute inset-0">
+        <div className="absolute w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(59,130,246,0.2)_0%,rgba(37,99,235,0.3)_100%)]"></div>
         {Array.from({ length: 20 }).map((_, i) => (
           <div
             key={i}
-            className="absolute h-[2px] bg-blue-400"
+            className="absolute h-[3px] bg-blue-500"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
               width: `${Math.random() * 200 + 100}px`,
               transform: `rotate(${Math.random() * 360}deg)`,
-              opacity: Math.random() * 0.5 + 0.2,
-              boxShadow: '0 0 10px rgba(120,190,255,0.8)',
+              opacity: Math.random() * 0.7 + 0.3,
+              boxShadow: '0 0 15px rgba(59,130,246,0.8)',
             }}
           ></div>
         ))}
@@ -81,14 +81,14 @@ const AdminLogin = () => {
           <motion.div
             initial={{ scale: 0.95 }}
             animate={{ scale: 1 }}
-            className="bg-white/10 backdrop-blur-sm rounded-lg shadow-lg p-8"
+            className="bg-white/30 backdrop-blur-sm rounded-lg shadow-lg p-8"
           >
-            <h1 className="text-2xl font-semibold text-center mb-6 text-white">
+            <h1 className="text-2xl font-semibold text-center mb-6 text-blue-900">
               {showCreateAdmin ? "Criar Primeiro Administrador" : "Acesso Administrativo"}
             </h1>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-white">Usuário</Label>
+                <Label htmlFor="username" className="text-blue-900">Usuário</Label>
                 <Input
                   id="username"
                   required
@@ -96,12 +96,12 @@ const AdminLogin = () => {
                   onChange={(e) =>
                     setCredentials({ ...credentials, username: e.target.value })
                   }
-                  className="bg-white/20 border-white/20 text-white placeholder:text-white/50"
+                  className="bg-white/50 border-blue-200"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-white">Senha</Label>
+                <Label htmlFor="password" className="text-blue-900">Senha</Label>
                 <Input
                   id="password"
                   type="password"
@@ -110,7 +110,7 @@ const AdminLogin = () => {
                   onChange={(e) =>
                     setCredentials({ ...credentials, password: e.target.value })
                   }
-                  className="bg-white/20 border-white/20 text-white placeholder:text-white/50"
+                  className="bg-white/50 border-blue-200"
                 />
               </div>
 
