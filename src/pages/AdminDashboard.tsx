@@ -79,49 +79,80 @@ const AdminDashboard = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gray-50 p-6"
+      className="min-h-screen bg-gradient-to-b from-blue-900 via-blue-800 to-blue-700 relative overflow-hidden p-6"
     >
-      <div className="max-w-[95%] mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold text-gray-800">
-            Painel Administrativo
-          </h1>
-          <Button onClick={logout} variant="outline">
-            Sair
-          </Button>
+      {/* Efeito de fibra óptica */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
+        <div className="absolute w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,190,255,0.3)_0%,rgba(0,50,150,0.6)_100%)]"></div>
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute h-[2px] bg-blue-400"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              width: `${Math.random() * 200 + 100}px`,
+              transform: `rotate(${Math.random() * 360}deg)`,
+              opacity: Math.random() * 0.5 + 0.2,
+              boxShadow: '0 0 10px rgba(120,190,255,0.8)',
+            }}
+          ></div>
+        ))}
+      </div>
+
+      <div className="max-w-[95%] mx-auto relative">
+        <div className="flex flex-col items-center mb-8">
+          <motion.img
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            src="/lovable-uploads/d03abdb3-b61b-43e7-b5d4-4983ff5fcf27.png"
+            alt="Linknet Vale Logo"
+            className="w-32 mb-6"
+          />
+          <div className="flex justify-between items-center w-full">
+            <h1 className="text-2xl font-semibold text-white">
+              Painel Administrativo
+            </h1>
+            <Button onClick={logout} variant="outline" className="bg-white/10 text-white hover:bg-white/20">
+              Sair
+            </Button>
+          </div>
         </div>
 
-        <Tabs defaultValue="clients" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="clients">Clientes</TabsTrigger>
-            {hasPermission("manage_plans") && (
-              <TabsTrigger value="plans">Planos</TabsTrigger>
-            )}
-            {hasPermission("manage_users") && (
-              <TabsTrigger value="users">Usuários</TabsTrigger>
-            )}
-          </TabsList>
+        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6">
+          <Tabs defaultValue="clients" className="space-y-4">
+            <TabsList className="bg-white/20">
+              <TabsTrigger value="clients" className="data-[state=active]:bg-blue-600 text-white">Clientes</TabsTrigger>
+              {hasPermission("manage_plans") && (
+                <TabsTrigger value="plans" className="data-[state=active]:bg-blue-600 text-white">Planos</TabsTrigger>
+              )}
+              {hasPermission("manage_users") && (
+                <TabsTrigger value="users" className="data-[state=active]:bg-blue-600 text-white">Usuários</TabsTrigger>
+              )}
+            </TabsList>
 
-          <TabsContent value="clients">
-            <ClientsTable
-              clients={clients}
-              onEdit={client => hasPermission("edit_clients") && setSelectedClient(client)}
-              onPrint={client => hasPermission("print_clients") && printClient(client)}
-            />
-          </TabsContent>
+            <TabsContent value="clients">
+              <ClientsTable
+                clients={clients}
+                onEdit={client => hasPermission("edit_clients") && setSelectedClient(client)}
+                onPrint={client => hasPermission("print_clients") && printClient(client)}
+              />
+            </TabsContent>
 
-          <TabsContent value="plans">
-            <PlansManager
-              plans={plans}
-              onAddPlan={handleAddPlan}
-              onDeletePlan={handleDeletePlan}
-            />
-          </TabsContent>
+            <TabsContent value="plans">
+              <PlansManager
+                plans={plans}
+                onAddPlan={handleAddPlan}
+                onDeletePlan={handleDeletePlan}
+              />
+            </TabsContent>
 
-          <TabsContent value="users">
-            <UsersManager />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="users">
+              <UsersManager />
+            </TabsContent>
+          </Tabs>
+        </div>
 
         {selectedClient && (
           <EditClientModal
