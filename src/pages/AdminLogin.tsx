@@ -1,18 +1,45 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
+import { useToast } from "@/components/ui/use-toast";
 
 const AdminLogin = () => {
   const [credentials, setCredentials] = useState({ username: "", password: "" });
+  const [showCreateAdmin, setShowCreateAdmin] = useState(false);
   const { login } = useAuth();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const users = JSON.parse(localStorage.getItem("users") || "[]");
+    setShowCreateAdmin(users.length === 0);
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login(credentials.username, credentials.password);
+    if (showCreateAdmin) {
+      // Criar primeiro usuário admin
+      const adminUser = {
+        id: 1,
+        username: credentials.username,
+        password: credentials.password,
+        name: "Administrador",
+        isAdmin: true,
+        permissions: ["view_clients", "edit_clients", "print_clients", "manage_plans", "manage_users"]
+      };
+      
+      localStorage.setItem("users", JSON.stringify([adminUser]));
+      toast({
+        title: "Administrador criado",
+        description: "O usuário administrador foi criado com sucesso",
+      });
+      login(credentials.username, credentials.password);
+    } else {
+      login(credentials.username, credentials.password);
+    }
   };
 
   return (
@@ -28,7 +55,7 @@ const AdminLogin = () => {
           className="bg-white rounded-lg shadow-lg p-8"
         >
           <h1 className="text-2xl font-semibold text-center mb-6 text-gray-800">
-            Acesso Administrativo
+            {showCreateAdmin ? "Criar Primeiro Administrador" : "Acesso Administrativo"}
           </h1>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
@@ -62,7 +89,7 @@ const AdminLogin = () => {
               type="submit"
               className="w-full bg-purple-600 hover:bg-purple-700 transition-colors"
             >
-              Entrar
+              {showCreateAdmin ? "Criar Administrador" : "Entrar"}
             </Button>
           </form>
         </motion.div>
