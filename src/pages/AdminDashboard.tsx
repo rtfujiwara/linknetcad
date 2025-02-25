@@ -13,13 +13,14 @@ import {
 } from "@/components/ui/tabs";
 import { ClientsTable } from "@/components/admin/ClientsTable";
 import { PlansManager } from "@/components/admin/PlansManager";
+import { UsersManager } from "@/components/admin/UsersManager";
 import { EditClientModal } from "@/components/admin/EditClientModal";
 import { printClient } from "@/utils/printClient";
 import { Client } from "@/types/client";
 import { Plan } from "@/types/plan";
 
 const AdminDashboard = () => {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -93,14 +94,19 @@ const AdminDashboard = () => {
         <Tabs defaultValue="clients" className="space-y-4">
           <TabsList>
             <TabsTrigger value="clients">Clientes</TabsTrigger>
-            <TabsTrigger value="plans">Planos</TabsTrigger>
+            {hasPermission("manage_plans") && (
+              <TabsTrigger value="plans">Planos</TabsTrigger>
+            )}
+            {hasPermission("manage_users") && (
+              <TabsTrigger value="users">Usuários</TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="clients">
             <ClientsTable
               clients={clients}
-              onEdit={setSelectedClient}
-              onPrint={printClient}
+              onEdit={client => hasPermission("edit_clients") && setSelectedClient(client)}
+              onPrint={client => hasPermission("print_clients") && printClient(client)}
             />
           </TabsContent>
 
@@ -110,6 +116,10 @@ const AdminDashboard = () => {
               onAddPlan={handleAddPlan}
               onDeletePlan={handleDeletePlan}
             />
+          </TabsContent>
+
+          <TabsContent value="users">
+            <UsersManager />
           </TabsContent>
         </Tabs>
 
