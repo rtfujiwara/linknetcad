@@ -4,7 +4,8 @@ export type Permission =
   | "edit_clients"
   | "print_clients"
   | "manage_plans"
-  | "manage_users";
+  | "manage_users"
+  | "delete_data"; // Adicionada nova permissão
 
 export interface User {
   id: number;

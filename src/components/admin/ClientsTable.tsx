@@ -20,7 +20,7 @@ interface ClientsTableProps {
 }
 
 export const ClientsTable = ({ clients, onEdit, onPrint, onDelete }: ClientsTableProps) => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, hasPermission } = useAuth();
   
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 overflow-x-auto">
@@ -62,7 +62,7 @@ export const ClientsTable = ({ clients, onEdit, onPrint, onDelete }: ClientsTabl
                   >
                     Imprimir
                   </Button>
-                  {isAdmin && onDelete && (
+                  {(isAdmin || hasPermission("delete_data")) && onDelete && (
                     <Button
                       variant="destructive"
                       size="sm"

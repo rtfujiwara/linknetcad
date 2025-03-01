@@ -167,7 +167,7 @@ const AdminDashboard = () => {
                 clients={clients}
                 onEdit={client => hasPermission("edit_clients") && setSelectedClient(client)}
                 onPrint={client => hasPermission("print_clients") && printClient(client)}
-                onDelete={isAdmin ? handleDeleteClient : undefined}
+                onDelete={(isAdmin || hasPermission("delete_data")) ? handleDeleteClient : undefined}
               />
             </TabsContent>
 

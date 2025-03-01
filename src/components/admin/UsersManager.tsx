@@ -23,6 +23,7 @@ const PERMISSIONS: { value: Permission; label: string }[] = [
   { value: "print_clients", label: "Imprimir Documentos" },
   { value: "manage_plans", label: "Gerenciar Planos" },
   { value: "manage_users", label: "Gerenciar Usuários" },
+  { value: "delete_data", label: "Excluir Dados" },
 ];
 
 export const UsersManager = () => {
