@@ -11,6 +11,7 @@ interface AuthContextType {
   logout: () => void;
   hasPermission: (permission: Permission) => boolean;
   changePassword: (oldPassword: string, newPassword: string) => void;
+  isAdmin: boolean; // Added this property
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -96,6 +97,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  // Compute isAdmin based on the currentUser
+  const isAdmin = currentUser?.isAdmin || false;
+
   return (
     <AuthContext.Provider value={{ 
       isAuthenticated, 
@@ -103,7 +107,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       login, 
       logout, 
       hasPermission,
-      changePassword 
+      changePassword,
+      isAdmin
     }}>
       {children}
     </AuthContext.Provider>
