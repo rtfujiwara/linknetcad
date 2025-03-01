@@ -24,7 +24,7 @@ const PERMISSIONS: { value: Permission; label: string }[] = [
 ];
 
 export const UsersManager = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, changePassword } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>(() => 
     JSON.parse(localStorage.getItem("users") || "[]")
@@ -36,6 +36,13 @@ export const UsersManager = () => {
     permissions: [] as Permission[],
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const handleAddUser = () => {
     if (!newUser.username || !newUser.password || !newUser.name) {
@@ -88,6 +95,61 @@ export const UsersManager = () => {
         ? prev.permissions.filter(p => p !== permission)
         : [...prev.permissions, permission],
     }));
+  };
+
+  const handleChangePassword = () => {
+    if (!selectedUser) return;
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "As senhas não coincidem",
+      });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 4) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "A senha deve ter pelo menos 4 caracteres",
+      });
+      return;
+    }
+
+    // If the current user is changing their own password, use the context method
+    if (selectedUser.id === currentUser?.id) {
+      changePassword(passwordData.currentPassword, passwordData.newPassword);
+    } else {
+      // Admin changing another user's password
+      const updatedUsers = users.map(user => 
+        user.id === selectedUser.id 
+          ? { ...user, password: passwordData.newPassword } 
+          : user
+      );
+      
+      setUsers(updatedUsers);
+      localStorage.setItem("users", JSON.stringify(updatedUsers));
+      
+      toast({
+        title: "Senha alterada",
+        description: `A senha do usuário ${selectedUser.name} foi alterada com sucesso`,
+      });
+    }
+    
+    setPasswordData({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+    setIsChangePasswordDialogOpen(false);
+    setSelectedUser(null);
+  };
+
+  const openChangePasswordDialog = (user: User) => {
+    setSelectedUser(user);
+    setIsChangePasswordDialogOpen(true);
   };
 
   return (
@@ -158,6 +220,7 @@ export const UsersManager = () => {
               <th className="px-4 py-2 text-left">Nome</th>
               <th className="px-4 py-2 text-left">Usuário</th>
               <th className="px-4 py-2 text-left">Permissões</th>
+              <th className="px-4 py-2 text-left">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -179,11 +242,63 @@ export const UsersManager = () => {
                       ))}
                     </div>
                   </td>
+                  <td className="px-4 py-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => openChangePasswordDialog(user)}
+                    >
+                      Alterar Senha
+                    </Button>
+                  </td>
                 </tr>
               ))}
           </tbody>
         </table>
       </div>
+
+      <Dialog open={isChangePasswordDialogOpen} onOpenChange={setIsChangePasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar Senha {selectedUser && `- ${selectedUser.name}`}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Only show current password field if user is changing their own password */}
+            {selectedUser?.id === currentUser?.id && (
+              <div>
+                <Label htmlFor="currentPassword">Senha Atual</Label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  value={passwordData.currentPassword}
+                  onChange={e => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                />
+              </div>
+            )}
+            <div>
+              <Label htmlFor="newPassword">Nova Senha</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={passwordData.newPassword}
+                onChange={e => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={e => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+              />
+            </div>
+            <Button onClick={handleChangePassword} className="w-full">
+              Salvar Nova Senha
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
