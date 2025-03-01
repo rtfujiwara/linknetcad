@@ -10,14 +10,18 @@ import {
 } from "@/components/ui/table";
 import { Client } from "@/types/client";
 import { ViewClientData } from "./ViewClientData";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ClientsTableProps {
   clients: Client[];
   onEdit: (client: Client) => void;
   onPrint: (client: Client) => void;
+  onDelete?: (client: Client) => void;
 }
 
-export const ClientsTable = ({ clients, onEdit, onPrint }: ClientsTableProps) => {
+export const ClientsTable = ({ clients, onEdit, onPrint, onDelete }: ClientsTableProps) => {
+  const { isAdmin } = useAuth();
+  
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 overflow-x-auto">
       <Table>
@@ -58,6 +62,15 @@ export const ClientsTable = ({ clients, onEdit, onPrint }: ClientsTableProps) =>
                   >
                     Imprimir
                   </Button>
+                  {isAdmin && onDelete && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => onDelete(client)}
+                    >
+                      Excluir
+                    </Button>
+                  )}
                 </div>
               </TableCell>
             </TableRow>

@@ -18,12 +18,23 @@ import { EditClientModal } from "@/components/admin/EditClientModal";
 import { printClient } from "@/utils/printClient";
 import { Client } from "@/types/client";
 import { Plan } from "@/types/plan";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const AdminDashboard = () => {
-  const { isAuthenticated, logout, hasPermission } = useAuth();
+  const { isAuthenticated, logout, hasPermission, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const { toast } = useToast();
 
@@ -72,6 +83,25 @@ const AdminDashboard = () => {
     toast({
       title: "Cliente atualizado",
       description: "Os dados do cliente foram atualizados com sucesso",
+    });
+  };
+
+  const handleDeleteClient = (client: Client) => {
+    setClientToDelete(client);
+  };
+
+  const confirmDeleteClient = () => {
+    if (!clientToDelete) return;
+    
+    const updatedClients = clients.filter(c => c.id !== clientToDelete.id);
+    setClients(updatedClients);
+    localStorage.setItem("clients", JSON.stringify(updatedClients));
+    setClientToDelete(null);
+    
+    toast({
+      title: "Cliente excluído",
+      description: "O cliente foi excluído com sucesso",
+      variant: "destructive",
     });
   };
 
@@ -137,6 +167,7 @@ const AdminDashboard = () => {
                 clients={clients}
                 onEdit={client => hasPermission("edit_clients") && setSelectedClient(client)}
                 onPrint={client => hasPermission("print_clients") && printClient(client)}
+                onDelete={isAdmin ? handleDeleteClient : undefined}
               />
             </TabsContent>
 
@@ -162,6 +193,21 @@ const AdminDashboard = () => {
             onChange={setSelectedClient}
           />
         )}
+
+        <AlertDialog open={!!clientToDelete} onOpenChange={(open) => !open && setClientToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir o cliente {clientToDelete?.name}? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteClient}>Excluir</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </motion.div>
   );
