@@ -13,7 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { Trash2, PenSquare, KeyRound } from "lucide-react";
 
 const PERMISSIONS: { value: Permission; label: string }[] = [
   { value: "view_clients", label: "Visualizar Clientes" },
@@ -24,7 +26,7 @@ const PERMISSIONS: { value: Permission; label: string }[] = [
 ];
 
 export const UsersManager = () => {
-  const { currentUser, changePassword } = useAuth();
+  const { currentUser, changePassword, hasPermission } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>(() => 
     JSON.parse(localStorage.getItem("users") || "[]")
@@ -37,12 +39,15 @@ export const UsersManager = () => {
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false);
+  const [isEditPermissionsDialogOpen, setIsEditPermissionsDialogOpen] = useState(false);
+  const [isDeleteUserDialogOpen, setIsDeleteUserDialogOpen] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editPermissions, setEditPermissions] = useState<Permission[]>([]);
 
   const handleAddUser = () => {
     if (!newUser.username || !newUser.password || !newUser.name) {
@@ -95,6 +100,14 @@ export const UsersManager = () => {
         ? prev.permissions.filter(p => p !== permission)
         : [...prev.permissions, permission],
     }));
+  };
+
+  const toggleEditPermission = (permission: Permission) => {
+    setEditPermissions(prev => 
+      prev.includes(permission)
+        ? prev.filter(p => p !== permission)
+        : [...prev, permission]
+    );
   };
 
   const handleChangePassword = () => {
@@ -152,65 +165,147 @@ export const UsersManager = () => {
     setIsChangePasswordDialogOpen(true);
   };
 
+  const openEditPermissionsDialog = (user: User) => {
+    setSelectedUser(user);
+    setEditPermissions([...user.permissions]);
+    setIsEditPermissionsDialogOpen(true);
+  };
+
+  const openDeleteUserDialog = (user: User) => {
+    setSelectedUser(user);
+    setIsDeleteUserDialogOpen(true);
+  };
+
+  const handleEditPermissions = () => {
+    if (!selectedUser) return;
+
+    const updatedUsers = users.map(user => 
+      user.id === selectedUser.id 
+        ? { ...user, permissions: editPermissions } 
+        : user
+    );
+    
+    setUsers(updatedUsers);
+    localStorage.setItem("users", JSON.stringify(updatedUsers));
+    
+    // Update current user in local storage if the edited user is the current user
+    if (selectedUser.id === currentUser?.id) {
+      const updatedCurrentUser = { ...currentUser, permissions: editPermissions };
+      localStorage.setItem("currentUser", JSON.stringify(updatedCurrentUser));
+    }
+    
+    toast({
+      title: "Permissões atualizadas",
+      description: `As permissões do usuário ${selectedUser.name} foram atualizadas com sucesso`,
+    });
+    
+    setIsEditPermissionsDialogOpen(false);
+    setSelectedUser(null);
+  };
+
+  const handleDeleteUser = () => {
+    if (!selectedUser) return;
+
+    // Prevent deleting yourself
+    if (selectedUser.id === currentUser?.id) {
+      toast({
+        variant: "destructive",
+        title: "Operação não permitida",
+        description: "Você não pode excluir seu próprio usuário",
+      });
+      setIsDeleteUserDialogOpen(false);
+      setSelectedUser(null);
+      return;
+    }
+
+    // Prevent deleting admin users if you're not an admin
+    if (selectedUser.isAdmin && !currentUser?.isAdmin) {
+      toast({
+        variant: "destructive",
+        title: "Operação não permitida",
+        description: "Você não tem permissão para excluir um administrador",
+      });
+      setIsDeleteUserDialogOpen(false);
+      setSelectedUser(null);
+      return;
+    }
+
+    const updatedUsers = users.filter(user => user.id !== selectedUser.id);
+    setUsers(updatedUsers);
+    localStorage.setItem("users", JSON.stringify(updatedUsers));
+    
+    toast({
+      title: "Usuário excluído",
+      description: `O usuário ${selectedUser.name} foi excluído com sucesso`,
+    });
+    
+    setIsDeleteUserDialogOpen(false);
+    setSelectedUser(null);
+  };
+
+  const canManageUsers = currentUser?.isAdmin || hasPermission("manage_users");
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Gerenciar Usuários</h2>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>Adicionar Usuário</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Novo Usuário</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">Nome Completo</Label>
-                <Input
-                  id="name"
-                  value={newUser.name}
-                  onChange={e => setNewUser(prev => ({ ...prev, name: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="username">Nome de Usuário</Label>
-                <Input
-                  id="username"
-                  value={newUser.username}
-                  onChange={e => setNewUser(prev => ({ ...prev, username: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={newUser.password}
-                  onChange={e => setNewUser(prev => ({ ...prev, password: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Permissões</Label>
-                <div className="grid grid-cols-1 gap-2">
-                  {PERMISSIONS.map(permission => (
-                    <div key={permission.value} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={permission.value}
-                        checked={newUser.permissions.includes(permission.value)}
-                        onCheckedChange={() => togglePermission(permission.value)}
-                      />
-                      <label htmlFor={permission.value}>{permission.label}</label>
-                    </div>
-                  ))}
+        {canManageUsers && (
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>Adicionar Usuário</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Novo Usuário</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Nome Completo</Label>
+                  <Input
+                    id="name"
+                    value={newUser.name}
+                    onChange={e => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                  />
                 </div>
+                <div>
+                  <Label htmlFor="username">Nome de Usuário</Label>
+                  <Input
+                    id="username"
+                    value={newUser.username}
+                    onChange={e => setNewUser(prev => ({ ...prev, username: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="password">Senha</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={newUser.password}
+                    onChange={e => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Permissões</Label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {PERMISSIONS.map(permission => (
+                      <div key={permission.value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={permission.value}
+                          checked={newUser.permissions.includes(permission.value)}
+                          onCheckedChange={() => togglePermission(permission.value)}
+                        />
+                        <label htmlFor={permission.value}>{permission.label}</label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <Button onClick={handleAddUser} className="w-full">
+                  Criar Usuário
+                </Button>
               </div>
-              <Button onClick={handleAddUser} className="w-full">
-                Criar Usuário
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="bg-white rounded-lg shadow">
@@ -243,13 +338,38 @@ export const UsersManager = () => {
                     </div>
                   </td>
                   <td className="px-4 py-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => openChangePasswordDialog(user)}
-                    >
-                      Alterar Senha
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => openChangePasswordDialog(user)}
+                      >
+                        <KeyRound className="mr-1 h-4 w-4" />
+                        Senha
+                      </Button>
+                      
+                      {canManageUsers && (
+                        <>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => openEditPermissionsDialog(user)}
+                          >
+                            <PenSquare className="mr-1 h-4 w-4" />
+                            Permissões
+                          </Button>
+                          
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => openDeleteUserDialog(user)}
+                          >
+                            <Trash2 className="mr-1 h-4 w-4" />
+                            Excluir
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -296,6 +416,59 @@ export const UsersManager = () => {
             <Button onClick={handleChangePassword} className="w-full">
               Salvar Nova Senha
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditPermissionsDialogOpen} onOpenChange={setIsEditPermissionsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Permissões {selectedUser && `- ${selectedUser.name}`}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Permissões</Label>
+              <div className="grid grid-cols-1 gap-2">
+                {PERMISSIONS.map(permission => (
+                  <div key={permission.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`edit-${permission.value}`}
+                      checked={editPermissions.includes(permission.value)}
+                      onCheckedChange={() => toggleEditPermission(permission.value)}
+                    />
+                    <label htmlFor={`edit-${permission.value}`}>{permission.label}</label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditPermissionsDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleEditPermissions}>
+                Salvar Permissões
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeleteUserDialogOpen} onOpenChange={setIsDeleteUserDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir Usuário</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>Tem certeza que deseja excluir o usuário {selectedUser?.name}?</p>
+            <p className="text-destructive">Esta ação não pode ser desfeita.</p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDeleteUserDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" onClick={handleDeleteUser}>
+                Excluir
+              </Button>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>
