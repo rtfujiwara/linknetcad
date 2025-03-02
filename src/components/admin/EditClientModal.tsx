@@ -1,8 +1,10 @@
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Client } from "@/types/client";
 import { motion } from "framer-motion";
+import { useEffect, useRef } from "react";
 
 interface EditClientModalProps {
   client: Client;
@@ -17,6 +19,15 @@ export const EditClientModal = ({
   onCancel,
   onChange,
 }: EditClientModalProps) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+  
+  // Scrollar para o topo quando o modal abrir
+  useEffect(() => {
+    if (modalRef.current) {
+      modalRef.current.scrollTop = 0;
+    }
+  }, [client]);
+  
   const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 2);
     if (Number(value) > 31) return;
@@ -27,11 +38,14 @@ export const EditClientModal = ({
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
     >
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl my-8">
-        <h2 className="text-xl font-semibold mb-4">Editar Cliente</h2>
-        <div className="grid grid-cols-2 gap-4">
+      <div 
+        ref={modalRef}
+        className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+      >
+        <h2 className="text-xl font-semibold mb-4 sticky top-0 bg-white pt-2 pb-2 z-10">Editar Cliente</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="edit-name">Nome</Label>
             <Input
@@ -207,7 +221,7 @@ export const EditClientModal = ({
           </div>
         </div>
 
-        <div className="flex justify-end space-x-2 mt-6">
+        <div className="flex justify-end space-x-2 mt-6 sticky bottom-0 bg-white pb-2 pt-2">
           <Button variant="outline" onClick={onCancel}>
             Cancelar
           </Button>

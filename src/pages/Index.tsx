@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 interface ClientData {
   name: string;
@@ -52,6 +53,7 @@ const Index = () => {
   });
   const [plans, setPlans] = useState<{ id: number; name: string; price: number; description: string; }[]>([]);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const savedPlans = JSON.parse(localStorage.getItem("plans") || "[]");
@@ -90,6 +92,11 @@ const Index = () => {
       title: "Cadastro realizado com sucesso!",
       description: "Seus dados foram salvos.",
     });
+    
+    // Redirecionar para a página principal após o cadastro
+    setTimeout(() => {
+      navigate("/");
+    }, 1500); // Pequeno delay para que o usuário veja a mensagem de sucesso
   };
 
   const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
