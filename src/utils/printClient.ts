@@ -80,6 +80,28 @@ export const printClient = (client: any) => {
               font-size: 11px;
               line-height: 1.6;
             }
+            .button-container {
+              display: flex;
+              gap: 10px;
+              margin-top: 20px;
+              justify-content: center;
+            }
+            .btn {
+              padding: 8px 16px;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+              font-weight: bold;
+              font-size: 14px;
+            }
+            .btn-print {
+              background-color: #3b82f6;
+              color: white;
+            }
+            .btn-back {
+              background-color: #e0e0e0;
+              color: #333;
+            }
             @media print {
               .no-print {
                 display: none;
@@ -130,7 +152,10 @@ export const printClient = (client: any) => {
             </div>
           </div>
 
-          <button class="no-print" onclick="window.print()" style="margin-top: 20px;">Imprimir</button>
+          <div class="button-container no-print">
+            <button class="btn btn-back" onclick="window.close()">Voltar</button>
+            <button class="btn btn-print" onclick="window.print()">Imprimir</button>
+          </div>
         </body>
       </html>
     `);
