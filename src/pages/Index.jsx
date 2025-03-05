@@ -7,30 +7,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 
-interface ClientData {
-  name: string;
-  email: string;
-  document: string; // CPF/CNPJ
-  rgIe: string; // RG/IE
-  birthDate: string;
-  address: string;
-  number: string;
-  complement: string;
-  neighborhood: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  condoName: string;
-  phone: string;
-  alternativePhone: string;
-  plan: string;
-  dueDate: string;
-  wifiName: string;
-  wifiPassword: string;
-}
-
 const Index = () => {
-  const [formData, setFormData] = useState<ClientData>({
+  const [formData, setFormData] = useState({
     name: "",
     email: "",
     document: "",
@@ -51,7 +29,7 @@ const Index = () => {
     wifiName: "",
     wifiPassword: "",
   });
-  const [plans, setPlans] = useState<{ id: number; name: string; price: number; description: string; }[]>([]);
+  const [plans, setPlans] = useState([]);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -60,7 +38,7 @@ const Index = () => {
     setPlans(savedPlans);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     const clients = JSON.parse(localStorage.getItem("clients") || "[]");
     clients.push({ ...formData, id: Date.now() });
@@ -99,13 +77,11 @@ const Index = () => {
     }, 1500); // Pequeno delay para que o usuário veja a mensagem de sucesso
   };
 
-  const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDueDateChange = (e) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 2);
     if (Number(value) > 31) return;
     setFormData({ ...formData, dueDate: value });
   };
-
-  const requiredField = "Campo obrigatório";
 
   return (
     <motion.div

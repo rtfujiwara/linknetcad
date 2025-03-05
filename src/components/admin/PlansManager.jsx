@@ -1,20 +1,13 @@
 
-import { Plan } from "@/types/plan";
 import { useState } from "react";
 import { PlanForm } from "./plans/PlanForm";
 import { EditPlanForm } from "./plans/EditPlanForm";
 import { PlansTable } from "./plans/PlansTable";
 
-interface PlansManagerProps {
-  plans: Plan[];
-  onAddPlan: (plan: Omit<Plan, "id">) => void;
-  onDeletePlan: (id: number) => void;
-}
+export const PlansManager = ({ plans, onAddPlan, onDeletePlan }) => {
+  const [editingPlan, setEditingPlan] = useState(null);
 
-export const PlansManager = ({ plans, onAddPlan, onDeletePlan }: PlansManagerProps) => {
-  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
-
-  const handleEdit = (plan: Plan) => {
+  const handleEdit = (plan) => {
     setEditingPlan(plan);
   };
 

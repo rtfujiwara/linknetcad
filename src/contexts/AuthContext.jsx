@@ -1,24 +1,13 @@
 
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
-import { User, Permission } from "@/types/user";
 
-interface AuthContextType {
-  isAuthenticated: boolean;
-  currentUser: User | null;
-  login: (username: string, password: string) => void;
-  logout: () => void;
-  hasPermission: (permission: Permission) => boolean;
-  changePassword: (oldPassword: string, newPassword: string) => void;
-  isAdmin: boolean; // Added this property
-}
+const AuthContext = createContext(null);
 
-const AuthContext = createContext<AuthContextType | null>(null);
-
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -31,9 +20,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const login = (username: string, password: string) => {
+  const login = (username, password) => {
     const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const user = users.find((u: User) => u.username === username);
+    const user = users.find((u) => u.username === username);
 
     if (user && user.password === password) {
       setIsAuthenticated(true);
@@ -64,13 +53,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  const hasPermission = (permission: Permission): boolean => {
+  const hasPermission = (permission) => {
     if (!currentUser) return false;
     if (currentUser.isAdmin) return true;
     return currentUser.permissions.includes(permission);
   };
 
-  const changePassword = (oldPassword: string, newPassword: string) => {
+  const changePassword = (oldPassword, newPassword) => {
     if (!currentUser) return;
 
     if (currentUser.password !== oldPassword) {
@@ -83,7 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const updatedUsers = users.map((u: User) => 
+    const updatedUsers = users.map((u) => 
       u.id === currentUser.id ? { ...u, password: newPassword } : u
     );
 

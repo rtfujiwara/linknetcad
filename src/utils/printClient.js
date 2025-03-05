@@ -1,5 +1,5 @@
 
-export const printClient = (client: any) => {
+export const printClient = (client) => {
   const printWindow = window.open("", "_blank");
   if (printWindow) {
     printWindow.document.write(`

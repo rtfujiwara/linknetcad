@@ -2,22 +2,14 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plan } from "@/types/plan";
 import { useToast } from "@/components/ui/use-toast";
-
-interface EditPlanFormProps {
-  editingPlan: Plan;
-  setEditingPlan: React.Dispatch<React.SetStateAction<Plan | null>>;
-  plans: Plan[];
-  onCancel: () => void;
-}
 
 export const EditPlanForm = ({
   editingPlan,
   setEditingPlan,
   plans,
   onCancel,
-}: EditPlanFormProps) => {
+}) => {
   const { toast } = useToast();
 
   const handleUpdatePlan = () => {

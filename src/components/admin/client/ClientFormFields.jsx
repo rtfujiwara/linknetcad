@@ -1,18 +1,11 @@
 
-import { Client } from "@/types/client";
 import { ClientFormField, ClientInput } from "./ClientFormField";
-
-interface ClientFormFieldsProps {
-  client: Client;
-  onChange: (updatedClient: Client) => void;
-  handleDueDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}
 
 export const ClientFormFields = ({
   client,
   onChange,
   handleDueDateChange,
-}: ClientFormFieldsProps) => {
+}) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <ClientFormField id="edit-name" label="Nome">

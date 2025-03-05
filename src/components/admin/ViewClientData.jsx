@@ -7,13 +7,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Client } from "@/types/client";
 
-interface ViewClientDataProps {
-  client: Client;
-}
-
-export const ViewClientData = ({ client }: ViewClientDataProps) => {
+export const ViewClientData = ({ client }) => {
   return (
     <Dialog>
       <DialogTrigger asChild>

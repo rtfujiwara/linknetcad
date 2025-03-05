@@ -18,7 +18,7 @@ const AdminLogin = () => {
     setShowCreateAdmin(users.length === 0);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (showCreateAdmin) {
       // Criar primeiro usuário admin

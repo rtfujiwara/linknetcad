@@ -8,16 +8,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plan } from "@/types/plan";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface PlansTableProps {
-  plans: Plan[];
-  onDeletePlan: (id: number) => void;
-  onEditPlan: (plan: Plan) => void;
-}
-
-export const PlansTable = ({ plans, onDeletePlan, onEditPlan }: PlansTableProps) => {
+export const PlansTable = ({ plans, onDeletePlan, onEditPlan }) => {
   const { hasPermission } = useAuth();
 
   return (

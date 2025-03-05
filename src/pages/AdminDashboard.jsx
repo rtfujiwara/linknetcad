@@ -6,8 +6,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 import { EditClientModal } from "@/components/admin/EditClientModal";
 import { printClient } from "@/utils/printClient";
-import { Client } from "@/types/client";
-import { Plan } from "@/types/plan";
 import { FiberOpticBackground } from "@/components/admin/FiberOpticBackground";
 import { DashboardHeader } from "@/components/admin/DashboardHeader";
 import { DashboardTabs } from "@/components/admin/DashboardTabs";
@@ -16,10 +14,10 @@ import { DeleteClientDialog } from "@/components/admin/DeleteClientDialog";
 const AdminDashboard = () => {
   const { isAuthenticated, logout, hasPermission, isAdmin } = useAuth();
   const navigate = useNavigate();
-  const [clients, setClients] = useState<Client[]>([]);
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const [clients, setClients] = useState([]);
+  const [selectedClient, setSelectedClient] = useState(null);
+  const [clientToDelete, setClientToDelete] = useState(null);
+  const [plans, setPlans] = useState([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -33,7 +31,7 @@ const AdminDashboard = () => {
     setPlans(savedPlans);
   }, [isAuthenticated, navigate]);
 
-  const handleAddPlan = (newPlan: Omit<Plan, "id">) => {
+  const handleAddPlan = (newPlan) => {
     const plan = {
       ...newPlan,
       id: Date.now(),
@@ -47,7 +45,7 @@ const AdminDashboard = () => {
     });
   };
 
-  const handleDeletePlan = (id: number) => {
+  const handleDeletePlan = (id) => {
     const updatedPlans = plans.filter(plan => plan.id !== id);
     setPlans(updatedPlans);
     localStorage.setItem("plans", JSON.stringify(updatedPlans));
@@ -57,7 +55,7 @@ const AdminDashboard = () => {
     });
   };
 
-  const handleSaveClient = (updatedClient: Client) => {
+  const handleSaveClient = (updatedClient) => {
     const updatedClients = clients.map((c) =>
       c.id === updatedClient.id ? updatedClient : c
     );
@@ -70,7 +68,7 @@ const AdminDashboard = () => {
     });
   };
 
-  const handleDeleteClient = (client: Client) => {
+  const handleDeleteClient = (client) => {
     setClientToDelete(client);
   };
 

@@ -1,25 +1,17 @@
 
-import { Client } from "@/types/client";
 import { motion } from "framer-motion";
 import { useEffect, useRef } from "react";
 import { ClientFormFields } from "./client/ClientFormFields";
 import { ClientModalHeader } from "./client/ClientModalHeader";
 import { ClientModalFooter } from "./client/ClientModalFooter";
 
-interface EditClientModalProps {
-  client: Client;
-  onSave: (client: Client) => void;
-  onCancel: () => void;
-  onChange: (updatedClient: Client) => void;
-}
-
 export const EditClientModal = ({
   client,
   onSave,
   onCancel,
   onChange,
-}: EditClientModalProps) => {
-  const modalRef = useRef<HTMLDivElement>(null);
+}) => {
+  const modalRef = useRef(null);
   
   // Scrollar para o topo quando o modal abrir
   useEffect(() => {
@@ -28,7 +20,7 @@ export const EditClientModal = ({
     }
   }, [client]);
   
-  const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDueDateChange = (e) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 2);
     if (Number(value) > 31) return;
     onChange({ ...client, dueDate: value });

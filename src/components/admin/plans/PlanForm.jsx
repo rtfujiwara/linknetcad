@@ -2,16 +2,11 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plan } from "@/types/plan";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
-interface PlanFormProps {
-  onAddPlan: (plan: Omit<Plan, "id">) => void;
-}
-
-export const PlanForm = ({ onAddPlan }: PlanFormProps) => {
-  const [newPlan, setNewPlan] = useState<Omit<Plan, "id">>({
+export const PlanForm = ({ onAddPlan }) => {
+  const [newPlan, setNewPlan] = useState({
     name: "",
     price: 0,
     description: "",
