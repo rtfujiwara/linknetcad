@@ -10,13 +10,17 @@ import { useToast } from "@/components/ui/use-toast";
 const AdminLogin = () => {
   const [credentials, setCredentials] = useState({ username: "", password: "" });
   const [showCreateAdmin, setShowCreateAdmin] = useState(false);
-  const { login } = useAuth();
+  const { login, initializeStorage } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
+    // Inicializa o storage se necessário
+    initializeStorage();
+    
+    // Verifica se existem usuários
     const users = JSON.parse(localStorage.getItem("users") || "[]");
     setShowCreateAdmin(users.length === 0);
-  }, []);
+  }, [initializeStorage]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
