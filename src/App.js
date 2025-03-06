@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Toaster } from "./components/ui/toaster.js";
 import { Toaster as Sonner } from "./components/ui/sonner.js";
 import { TooltipProvider } from "./components/ui/tooltip.js";
