@@ -31,7 +31,7 @@ const Home = () => {
 
       <div className="absolute top-4 right-4">
         <Link to="/admin">
-          <Button variant="outline" size="sm" className="text-sm bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm">
+          <Button variant="outline" size="sm" className="text-sm bg-white/10 hover:bg-white/20 backdrop-blur-sm">
             Área Administrativa
           </Button>
         </Link>
