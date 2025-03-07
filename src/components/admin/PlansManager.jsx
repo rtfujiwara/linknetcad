@@ -1,8 +1,7 @@
-
 import { useState } from "react";
-import { PlanForm } from "./plans/PlanForm";
-import { EditPlanForm } from "./plans/EditPlanForm";
-import { PlansTable } from "./plans/PlansTable";
+import { PlanForm } from "./plans/PlanForm.jsx";
+import { EditPlanForm } from "./plans/EditPlanForm.jsx";
+import { PlansTable } from "./plans/PlansTable.jsx";
 
 export const PlansManager = ({ plans, onAddPlan, onDeletePlan }) => {
   const [editingPlan, setEditingPlan] = useState(null);
