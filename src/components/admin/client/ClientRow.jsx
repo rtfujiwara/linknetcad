@@ -1,6 +1,5 @@
-
 import { TableCell, TableRow } from "@/components/ui/table";
-import { ClientActions } from "./ClientActions";
+import { ClientActions } from "./ClientActions.jsx";
 
 export const ClientRow = ({
   client,

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,8 +7,8 @@ import { EditClientModal } from "@/components/admin/EditClientModal.jsx";
 import { printClient } from "@/utils/printClient";
 import { FiberOpticBackground } from "@/components/admin/FiberOpticBackground";
 import { DashboardHeader } from "@/components/admin/DashboardHeader";
-import { DashboardTabs } from "@/components/admin/DashboardTabs";
-import { DeleteClientDialog } from "@/components/admin/DeleteClientDialog";
+import { DashboardTabs } from "@/components/admin/DashboardTabs.jsx";
+import { DeleteClientDialog } from "@/components/admin/DeleteClientDialog.jsx";
 
 const AdminDashboard = () => {
   const { isAuthenticated, logout, hasPermission, isAdmin } = useAuth();
