@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
+import { FiberOpticBackground } from "@/components/admin/FiberOpticBackground";
 
 const AdminLogin = () => {
   const [credentials, setCredentials] = useState({ username: "", password: "" });
@@ -14,8 +15,20 @@ const AdminLogin = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    setShowCreateAdmin(users.length === 0);
+    // Verifica se existem usuários no localStorage
+    const checkForUsers = () => {
+      const users = JSON.parse(localStorage.getItem("users") || "[]");
+      setShowCreateAdmin(users.length === 0);
+    };
+    
+    checkForUsers();
+    
+    // Adiciona um listener para o evento storage para detectar mudanças em outros navegadores
+    window.addEventListener("storage", checkForUsers);
+    
+    return () => {
+      window.removeEventListener("storage", checkForUsers);
+    };
   }, []);
 
   const handleSubmit = (e) => {
@@ -32,6 +45,9 @@ const AdminLogin = () => {
       };
       
       localStorage.setItem("users", JSON.stringify([adminUser]));
+      // Dispara um evento para notificar outros navegadores sobre a mudança
+      window.dispatchEvent(new Event("storage"));
+      
       toast({
         title: "Administrador criado",
         description: "O usuário administrador foi criado com sucesso",
@@ -49,23 +65,7 @@ const AdminLogin = () => {
       className="min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white relative overflow-hidden p-4"
     >
       {/* Efeito de fibra óptica */}
-      <div className="absolute inset-0">
-        <div className="absolute w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(59,130,246,0.2)_0%,rgba(37,99,235,0.3)_100%)]"></div>
-        {Array.from({ length: 20 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute h-[3px] bg-blue-500"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              width: `${Math.random() * 200 + 100}px`,
-              transform: `rotate(${Math.random() * 360}deg)`,
-              opacity: Math.random() * 0.7 + 0.3,
-              boxShadow: '0 0 15px rgba(59,130,246,0.8)',
-            }}
-          ></div>
-        ))}
-      </div>
+      <FiberOpticBackground />
 
       <div className="relative h-screen flex flex-col items-center justify-center">
         <motion.img
