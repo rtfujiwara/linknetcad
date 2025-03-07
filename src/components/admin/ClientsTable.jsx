@@ -1,7 +1,8 @@
+
 import { Table, TableBody } from "@/components/ui/table";
 import { useAuth } from "@/contexts/AuthContext";
 import { ClientTableHeader } from "./client/ClientTableHeader";
-import { ClientRow } from "./client/ClientRow.jsx";
+import { ClientRow } from "./client/ClientRow";
 
 export const ClientsTable = ({ 
   clients, 

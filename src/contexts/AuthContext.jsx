@@ -1,12 +1,9 @@
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 
 const AuthContext = createContext(null);
-
-// Nome da chave no localStorage para verificar inicialização
-const STORAGE_INITIALIZED_KEY = "storage_initialized";
 
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -14,32 +11,7 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Função para garantir que o storage seja inicializado apenas uma vez
-  const initializeStorage = () => {
-    const isInitialized = localStorage.getItem(STORAGE_INITIALIZED_KEY);
-    
-    if (!isInitialized) {
-      // Verificar se já existe algum dado no localStorage
-      const existingUsers = localStorage.getItem("users");
-      
-      // Se não existir nenhum dado, considerar o storage como não inicializado
-      if (!existingUsers || existingUsers === "[]") {
-        console.log("Inicializando storage pela primeira vez");
-        localStorage.setItem("users", "[]");
-        localStorage.setItem("clients", "[]");
-        localStorage.setItem("plans", "[]");
-      }
-      
-      // Marcar storage como inicializado
-      localStorage.setItem(STORAGE_INITIALIZED_KEY, "true");
-    }
-  };
-
   useEffect(() => {
-    // Inicializa o storage se necessário
-    initializeStorage();
-    
-    // Verifica se o usuário está autenticado
     const authUser = localStorage.getItem("currentUser");
     if (authUser) {
       const user = JSON.parse(authUser);
@@ -125,8 +97,7 @@ export const AuthProvider = ({ children }) => {
       logout, 
       hasPermission,
       changePassword,
-      isAdmin,
-      initializeStorage
+      isAdmin
     }}>
       {children}
     </AuthContext.Provider>
