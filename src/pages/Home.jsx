@@ -11,10 +11,9 @@ const Home = () => {
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white relative overflow-hidden"
     >
-      {/* Efeito de fibra óptica */}
       <FiberOpticBackground />
 
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 z-10">
         <Link to="/admin">
           <Button variant="outline" size="sm" className="text-blue-800 bg-white/70 hover:bg-white/90 backdrop-blur-sm border-blue-200">
             Área Administrativa
@@ -22,7 +21,7 @@ const Home = () => {
         </Link>
       </div>
 
-      <div className="h-screen flex flex-col items-center justify-center px-4">
+      <div className="h-screen flex flex-col items-center justify-center px-4 z-10 relative">
         <motion.img
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
