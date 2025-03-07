@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/tabs";
 import { ClientsTable } from "@/components/admin/ClientsTable";
 import { PlansManager } from "@/components/admin/PlansManager";
-import { UsersManager } from "@/components/admin/UsersManager";
+import { UsersManager } from "@/components/admin/UsersManager.jsx";
 
 export const DashboardTabs = ({
   clients,
