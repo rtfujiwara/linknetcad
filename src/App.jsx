@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Toaster } from "./components/ui/toaster.js";
-import { Toaster as Sonner } from "./components/ui/sonner.js";
+import { Toaster } from "./components/ui/toaster.jsx";
+import { Toaster as Sonner } from "./components/ui/sonner.jsx";
 import { TooltipProvider } from "./components/ui/tooltip.js";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
