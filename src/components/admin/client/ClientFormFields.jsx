@@ -1,5 +1,4 @@
-
-import { ClientFormField, ClientInput } from "./ClientFormField";
+import { ClientFormField, ClientInput } from "./ClientFormField.jsx";
 
 export const ClientFormFields = ({
   client,
