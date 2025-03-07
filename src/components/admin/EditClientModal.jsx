@@ -1,9 +1,8 @@
-
 import { motion } from "framer-motion";
 import { useEffect, useRef } from "react";
-import { ClientFormFields } from "./client/ClientFormFields";
-import { ClientModalHeader } from "./client/ClientModalHeader";
-import { ClientModalFooter } from "./client/ClientModalFooter";
+import { ClientFormFields } from "./client/ClientFormFields.jsx";
+import { ClientModalHeader } from "./client/ClientModalHeader.jsx";
+import { ClientModalFooter } from "./client/ClientModalFooter.jsx";
 
 export const EditClientModal = ({
   client,

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
-import { EditClientModal } from "@/components/admin/EditClientModal";
+import { EditClientModal } from "@/components/admin/EditClientModal.jsx";
 import { printClient } from "@/utils/printClient";
 import { FiberOpticBackground } from "@/components/admin/FiberOpticBackground";
 import { DashboardHeader } from "@/components/admin/DashboardHeader";
