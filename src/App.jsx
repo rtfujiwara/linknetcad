@@ -9,7 +9,7 @@ import Home from "./pages/Home.jsx";
 import Index from "./pages/Index.jsx";
 import AdminLogin from "./pages/AdminLogin.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
-import NotFound from "./pages/NotFound.js";
+import NotFound from "./pages/NotFound.jsx";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
 
 const queryClient = new QueryClient();
