@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
+import { syncStorage } from "@/utils/syncStorage";
 
 const AdminLogin = () => {
   const [credentials, setCredentials] = useState({ username: "", password: "" });
@@ -14,7 +15,7 @@ const AdminLogin = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
+    const users = syncStorage.getItem("users", []);
     setShowCreateAdmin(users.length === 0);
   }, []);
 
@@ -31,7 +32,7 @@ const AdminLogin = () => {
         permissions: ["view_clients", "edit_clients", "print_clients", "manage_plans", "manage_users"]
       };
       
-      localStorage.setItem("users", JSON.stringify([adminUser]));
+      syncStorage.setItem("users", [adminUser]);
       toast({
         title: "Administrador criado",
         description: "O usuário administrador foi criado com sucesso",

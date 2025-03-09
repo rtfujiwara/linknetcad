@@ -26,9 +26,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const authUser = localStorage.getItem("currentUser");
     if (authUser) {
-      const user = JSON.parse(authUser);
-      setCurrentUser(user);
-      setIsAuthenticated(true);
+      try {
+        const user = JSON.parse(authUser);
+        setCurrentUser(user);
+        setIsAuthenticated(true);
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+        localStorage.removeItem("currentUser");
+      }
     }
   }, []);
 
