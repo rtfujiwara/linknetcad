@@ -1,12 +1,12 @@
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useAuth } from "@/contexts/AuthContext";
+import React, { useState, useEffect } from "react";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
+import { useAuth } from "../contexts/AuthContext";
 import { motion } from "framer-motion";
-import { useToast } from "@/components/ui/use-toast";
-import { FiberOpticBackground } from "@/components/admin/FiberOpticBackground";
+import { useToast } from "../components/ui/use-toast";
+import { FiberOpticBackground } from "../components/admin/FiberOpticBackground";
 
 const AdminLogin = () => {
   const [credentials, setCredentials] = useState({ username: "", password: "" });
@@ -67,7 +67,7 @@ const AdminLogin = () => {
       {/* Efeito de fibra óptica */}
       <FiberOpticBackground />
 
-      <div className="relative h-screen flex flex-col items-center justify-center">
+      <div className="relative h-screen flex flex-col items-center justify-center z-10">
         <motion.img
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}

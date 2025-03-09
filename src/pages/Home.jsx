@@ -1,8 +1,9 @@
 
-import { Button } from "@/components/ui/button";
+import React from "react";
+import { Button } from "../components/ui/button";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { FiberOpticBackground } from "@/components/admin/FiberOpticBackground";
+import { FiberOpticBackground } from "../components/admin/FiberOpticBackground";
 
 const Home = () => {
   return (
@@ -43,7 +44,7 @@ const Home = () => {
             </h1>
             
             <div className="space-y-4">
-              <Link to="/register" className="block">
+              <Link to="/register" className="block w-full">
                 <Button className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6">
                   Cadastro de Cliente
                 </Button>

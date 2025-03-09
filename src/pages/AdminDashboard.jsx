@@ -1,15 +1,15 @@
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../components/ui/use-toast";
 import { motion } from "framer-motion";
-import { EditClientModal } from "@/components/admin/EditClientModal";
-import { printClient } from "@/utils/printClient";
-import { FiberOpticBackground } from "@/components/admin/FiberOpticBackground";
-import { DashboardHeader } from "@/components/admin/DashboardHeader";
-import { DashboardTabs } from "@/components/admin/DashboardTabs";
-import { DeleteClientDialog } from "@/components/admin/DeleteClientDialog";
+import { EditClientModal } from "../components/admin/EditClientModal";
+import { printClient } from "../utils/printClient";
+import { FiberOpticBackground } from "../components/admin/FiberOpticBackground";
+import { DashboardHeader } from "../components/admin/DashboardHeader";
+import { DashboardTabs } from "../components/admin/DashboardTabs";
+import { DeleteClientDialog } from "../components/admin/DeleteClientDialog";
 
 const AdminDashboard = () => {
   const { isAuthenticated, logout, hasPermission, isAdmin } = useAuth();
@@ -95,7 +95,7 @@ const AdminDashboard = () => {
     >
       <FiberOpticBackground />
 
-      <div className="max-w-[95%] mx-auto relative">
+      <div className="max-w-[95%] mx-auto relative z-10">
         <DashboardHeader onLogout={logout} />
 
         <div className="bg-white/30 backdrop-blur-sm rounded-lg p-6 shadow-lg">
