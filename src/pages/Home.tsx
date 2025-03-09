@@ -1,9 +1,7 @@
 
-import React from "react";
-import { Button } from "../components/ui/button";
+import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { FiberOpticBackground } from "../components/admin/FiberOpticBackground";
 
 const Home = () => {
   return (
@@ -12,17 +10,34 @@ const Home = () => {
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white relative overflow-hidden"
     >
-      <FiberOpticBackground />
+      {/* Efeito de fibra óptica */}
+      <div className="absolute inset-0">
+        <div className="absolute w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(59,130,246,0.2)_0%,rgba(37,99,235,0.3)_100%)]"></div>
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute h-[3px] bg-blue-500"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              width: `${Math.random() * 200 + 100}px`,
+              transform: `rotate(${Math.random() * 360}deg)`,
+              opacity: Math.random() * 0.7 + 0.3,
+              boxShadow: '0 0 15px rgba(59,130,246,0.8)',
+            }}
+          ></div>
+        ))}
+      </div>
 
-      <div className="absolute top-4 right-4 z-10">
+      <div className="absolute top-4 right-4">
         <Link to="/admin">
-          <Button variant="outline" size="sm" className="text-blue-800 bg-white/70 hover:bg-white/90 backdrop-blur-sm border-blue-200">
+          <Button variant="outline" size="sm" className="text-sm bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm">
             Área Administrativa
           </Button>
         </Link>
       </div>
 
-      <div className="h-screen flex flex-col items-center justify-center px-4 z-10 relative">
+      <div className="h-screen flex flex-col items-center justify-center px-4">
         <motion.img
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -44,7 +59,7 @@ const Home = () => {
             </h1>
             
             <div className="space-y-4">
-              <Link to="/register" className="block w-full">
+              <Link to="/register" className="block">
                 <Button className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6">
                   Cadastro de Cliente
                 </Button>

@@ -1,9 +1,9 @@
 
-import React from "react";
+import { motion } from "framer-motion";
 
 export const FiberOpticBackground = () => {
   return (
-    <div className="absolute inset-0 overflow-hidden z-0">
+    <div className="absolute inset-0">
       <div className="absolute w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(59,130,246,0.2)_0%,rgba(37,99,235,0.3)_100%)]"></div>
       {Array.from({ length: 20 }).map((_, i) => (
         <div
@@ -22,5 +22,3 @@ export const FiberOpticBackground = () => {
     </div>
   );
 };
-
-export default FiberOpticBackground;

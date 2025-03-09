@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { User, Permission } from "@/types/user";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Trash2, PenSquare, KeyRound } from "lucide-react";
 
-const PERMISSIONS = [
+const PERMISSIONS: { value: Permission; label: string }[] = [
   { value: "view_clients", label: "Visualizar Clientes" },
   { value: "edit_clients", label: "Editar Clientes" },
   { value: "print_clients", label: "Imprimir Documentos" },
@@ -28,14 +29,14 @@ const PERMISSIONS = [
 export const UsersManager = () => {
   const { currentUser, changePassword, hasPermission } = useAuth();
   const { toast } = useToast();
-  const [users, setUsers] = useState(() => 
+  const [users, setUsers] = useState<User[]>(() => 
     JSON.parse(localStorage.getItem("users") || "[]")
   );
   const [newUser, setNewUser] = useState({
     username: "",
     password: "",
     name: "",
-    permissions: [],
+    permissions: [] as Permission[],
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false);
@@ -46,8 +47,8 @@ export const UsersManager = () => {
     newPassword: "",
     confirmPassword: "",
   });
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [editPermissions, setEditPermissions] = useState([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editPermissions, setEditPermissions] = useState<Permission[]>([]);
 
   const handleAddUser = () => {
     if (!newUser.username || !newUser.password || !newUser.name) {
@@ -69,7 +70,7 @@ export const UsersManager = () => {
       return;
     }
 
-    const user = {
+    const user: User = {
       id: Date.now(),
       ...newUser,
       isAdmin: false,
@@ -93,7 +94,7 @@ export const UsersManager = () => {
     });
   };
 
-  const togglePermission = (permission) => {
+  const togglePermission = (permission: Permission) => {
     setNewUser(prev => ({
       ...prev,
       permissions: prev.permissions.includes(permission)
@@ -102,7 +103,7 @@ export const UsersManager = () => {
     }));
   };
 
-  const toggleEditPermission = (permission) => {
+  const toggleEditPermission = (permission: Permission) => {
     setEditPermissions(prev => 
       prev.includes(permission)
         ? prev.filter(p => p !== permission)
@@ -160,18 +161,18 @@ export const UsersManager = () => {
     setSelectedUser(null);
   };
 
-  const openChangePasswordDialog = (user) => {
+  const openChangePasswordDialog = (user: User) => {
     setSelectedUser(user);
     setIsChangePasswordDialogOpen(true);
   };
 
-  const openEditPermissionsDialog = (user) => {
+  const openEditPermissionsDialog = (user: User) => {
     setSelectedUser(user);
     setEditPermissions([...user.permissions]);
     setIsEditPermissionsDialogOpen(true);
   };
 
-  const openDeleteUserDialog = (user) => {
+  const openDeleteUserDialog = (user: User) => {
     setSelectedUser(user);
     setIsDeleteUserDialogOpen(true);
   };
@@ -330,44 +331,41 @@ export const UsersManager = () => {
                       {user.permissions.map(permission => (
                         <span
                           key={permission}
-                          className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full"
+                          className="px-2 py-1 text-xs bg-gray-100 rounded"
                         >
-                          {PERMISSIONS.find(p => p.value === permission)?.label || permission}
+                          {PERMISSIONS.find(p => p.value === permission)?.label}
                         </span>
                       ))}
-                      {user.isAdmin && (
-                        <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">
-                          Administrador
-                        </span>
-                      )}
                     </div>
                   </td>
                   <td className="px-4 py-2">
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant="outline" 
                         size="sm"
                         onClick={() => openChangePasswordDialog(user)}
                       >
-                        <KeyRound className="h-4 w-4 mr-1" />
+                        <KeyRound className="mr-1 h-4 w-4" />
                         Senha
                       </Button>
-                      {canManageUsers && !user.isAdmin && (
+                      
+                      {canManageUsers && (
                         <>
-                          <Button
-                            variant="outline"
+                          <Button 
+                            variant="outline" 
                             size="sm"
                             onClick={() => openEditPermissionsDialog(user)}
                           >
-                            <PenSquare className="h-4 w-4 mr-1" />
+                            <PenSquare className="mr-1 h-4 w-4" />
                             Permissões
                           </Button>
-                          <Button
-                            variant="destructive"
+                          
+                          <Button 
+                            variant="destructive" 
                             size="sm"
                             onClick={() => openDeleteUserDialog(user)}
                           >
-                            <Trash2 className="h-4 w-4 mr-1" />
+                            <Trash2 className="mr-1 h-4 w-4" />
                             Excluir
                           </Button>
                         </>
@@ -380,13 +378,13 @@ export const UsersManager = () => {
         </table>
       </div>
 
-      {/* Dialog de mudança de senha */}
       <Dialog open={isChangePasswordDialogOpen} onOpenChange={setIsChangePasswordDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Alterar Senha - {selectedUser?.name}</DialogTitle>
+            <DialogTitle>Alterar Senha {selectedUser && `- ${selectedUser.name}`}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Only show current password field if user is changing their own password */}
             {selectedUser?.id === currentUser?.id && (
               <div>
                 <Label htmlFor="currentPassword">Senha Atual</Label>
@@ -394,7 +392,7 @@ export const UsersManager = () => {
                   id="currentPassword"
                   type="password"
                   value={passwordData.currentPassword}
-                  onChange={e => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                  onChange={e => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
                 />
               </div>
             )}
@@ -404,30 +402,29 @@ export const UsersManager = () => {
                 id="newPassword"
                 type="password"
                 value={passwordData.newPassword}
-                onChange={e => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                onChange={e => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
               />
             </div>
             <div>
-              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+              <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 value={passwordData.confirmPassword}
-                onChange={e => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                onChange={e => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
               />
             </div>
             <Button onClick={handleChangePassword} className="w-full">
-              Alterar Senha
+              Salvar Nova Senha
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de edição de permissões */}
       <Dialog open={isEditPermissionsDialogOpen} onOpenChange={setIsEditPermissionsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar Permissões - {selectedUser?.name}</DialogTitle>
+            <DialogTitle>Editar Permissões {selectedUser && `- ${selectedUser.name}`}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -445,40 +442,34 @@ export const UsersManager = () => {
                 ))}
               </div>
             </div>
-            <Button onClick={handleEditPermissions} className="w-full">
-              Salvar Permissões
-            </Button>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditPermissionsDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleEditPermissions}>
+                Salvar Permissões
+              </Button>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de confirmação de exclusão */}
       <Dialog open={isDeleteUserDialogOpen} onOpenChange={setIsDeleteUserDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogTitle>Excluir Usuário</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p>
-              Tem certeza que deseja excluir o usuário <strong>{selectedUser?.name}</strong>?
-              Esta ação não pode ser desfeita.
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsDeleteUserDialogOpen(false)}
-                className="flex-1"
-              >
+            <p>Tem certeza que deseja excluir o usuário {selectedUser?.name}?</p>
+            <p className="text-destructive">Esta ação não pode ser desfeita.</p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDeleteUserDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDeleteUser}
-                className="flex-1"
-              >
+              <Button variant="destructive" onClick={handleDeleteUser}>
                 Excluir
               </Button>
-            </div>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>

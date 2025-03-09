@@ -1,23 +1,25 @@
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
-import { useToast } from "../components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
-import { EditClientModal } from "../components/admin/EditClientModal";
-import { printClient } from "../utils/printClient";
-import { FiberOpticBackground } from "../components/admin/FiberOpticBackground";
-import { DashboardHeader } from "../components/admin/DashboardHeader";
-import { DashboardTabs } from "../components/admin/DashboardTabs";
-import { DeleteClientDialog } from "../components/admin/DeleteClientDialog";
+import { EditClientModal } from "@/components/admin/EditClientModal";
+import { printClient } from "@/utils/printClient";
+import { Client } from "@/types/client";
+import { Plan } from "@/types/plan";
+import { FiberOpticBackground } from "@/components/admin/FiberOpticBackground";
+import { DashboardHeader } from "@/components/admin/DashboardHeader";
+import { DashboardTabs } from "@/components/admin/DashboardTabs";
+import { DeleteClientDialog } from "@/components/admin/DeleteClientDialog";
 
 const AdminDashboard = () => {
   const { isAuthenticated, logout, hasPermission, isAdmin } = useAuth();
   const navigate = useNavigate();
-  const [clients, setClients] = useState([]);
-  const [selectedClient, setSelectedClient] = useState(null);
-  const [clientToDelete, setClientToDelete] = useState(null);
-  const [plans, setPlans] = useState([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -31,7 +33,7 @@ const AdminDashboard = () => {
     setPlans(savedPlans);
   }, [isAuthenticated, navigate]);
 
-  const handleAddPlan = (newPlan) => {
+  const handleAddPlan = (newPlan: Omit<Plan, "id">) => {
     const plan = {
       ...newPlan,
       id: Date.now(),
@@ -45,7 +47,7 @@ const AdminDashboard = () => {
     });
   };
 
-  const handleDeletePlan = (id) => {
+  const handleDeletePlan = (id: number) => {
     const updatedPlans = plans.filter(plan => plan.id !== id);
     setPlans(updatedPlans);
     localStorage.setItem("plans", JSON.stringify(updatedPlans));
@@ -55,7 +57,7 @@ const AdminDashboard = () => {
     });
   };
 
-  const handleSaveClient = (updatedClient) => {
+  const handleSaveClient = (updatedClient: Client) => {
     const updatedClients = clients.map((c) =>
       c.id === updatedClient.id ? updatedClient : c
     );
@@ -68,7 +70,7 @@ const AdminDashboard = () => {
     });
   };
 
-  const handleDeleteClient = (client) => {
+  const handleDeleteClient = (client: Client) => {
     setClientToDelete(client);
   };
 
@@ -95,7 +97,7 @@ const AdminDashboard = () => {
     >
       <FiberOpticBackground />
 
-      <div className="max-w-[95%] mx-auto relative z-10">
+      <div className="max-w-[95%] mx-auto relative">
         <DashboardHeader onLogout={logout} />
 
         <div className="bg-white/30 backdrop-blur-sm rounded-lg p-6 shadow-lg">

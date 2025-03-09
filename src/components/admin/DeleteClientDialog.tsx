@@ -9,12 +9,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Client } from "@/types/client";
+
+interface DeleteClientDialogProps {
+  clientToDelete: Client | null;
+  onOpenChange: (open: boolean) => void;
+  onConfirmDelete: () => void;
+}
 
 export const DeleteClientDialog = ({
   clientToDelete,
   onOpenChange,
   onConfirmDelete,
-}) => {
+}: DeleteClientDialogProps) => {
   return (
     <AlertDialog open={!!clientToDelete} onOpenChange={onOpenChange}>
       <AlertDialogContent>

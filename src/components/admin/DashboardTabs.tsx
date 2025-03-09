@@ -8,6 +8,23 @@ import {
 import { ClientsTable } from "@/components/admin/ClientsTable";
 import { PlansManager } from "@/components/admin/PlansManager";
 import { UsersManager } from "@/components/admin/UsersManager";
+import { Client } from "@/types/client";
+import { Plan } from "@/types/plan";
+
+interface DashboardTabsProps {
+  clients: Client[];
+  plans: Plan[];
+  hasManagePlansPermission: boolean;
+  hasManageUsersPermission: boolean;
+  hasEditClientsPermission: boolean;
+  hasPrintClientsPermission: boolean;
+  hasDeletePermission: boolean;
+  onEditClient: (client: Client) => void;
+  onPrintClient: (client: Client) => void;
+  onDeleteClient: (client: Client) => void;
+  onAddPlan: (newPlan: Omit<Plan, "id">) => void;
+  onDeletePlan: (id: number) => void;
+}
 
 export const DashboardTabs = ({
   clients,
@@ -22,7 +39,7 @@ export const DashboardTabs = ({
   onDeleteClient,
   onAddPlan,
   onDeletePlan,
-}) => {
+}: DashboardTabsProps) => {
   return (
     <Tabs defaultValue="clients" className="space-y-4">
       <TabsList className="bg-white/50">

@@ -1,14 +1,36 @@
-import React, { useState, useEffect } from "react";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { useToast } from "../components/ui/use-toast";
+
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { FiberOpticBackground } from "../components/admin/FiberOpticBackground";
+
+interface ClientData {
+  name: string;
+  email: string;
+  document: string; // CPF/CNPJ
+  rgIe: string; // RG/IE
+  birthDate: string;
+  address: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  condoName: string;
+  phone: string;
+  alternativePhone: string;
+  plan: string;
+  dueDate: string;
+  wifiName: string;
+  wifiPassword: string;
+}
 
 const Index = () => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ClientData>({
     name: "",
     email: "",
     document: "",
@@ -29,7 +51,7 @@ const Index = () => {
     wifiName: "",
     wifiPassword: "",
   });
-  const [plans, setPlans] = useState([]);
+  const [plans, setPlans] = useState<{ id: number; name: string; price: number; description: string; }[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -38,7 +60,7 @@ const Index = () => {
     setPlans(savedPlans);
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const clients = JSON.parse(localStorage.getItem("clients") || "[]");
     clients.push({ ...formData, id: Date.now() });
@@ -77,6 +99,14 @@ const Index = () => {
     }, 1500); // Pequeno delay para que o usuário veja a mensagem de sucesso
   };
 
+  const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 2);
+    if (Number(value) > 31) return;
+    setFormData({ ...formData, dueDate: value });
+  };
+
+  const requiredField = "Campo obrigatório";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -84,10 +114,26 @@ const Index = () => {
       transition={{ duration: 0.5 }}
       className="min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white relative overflow-hidden"
     >
-      {/* Background com efeito de fibra óptica */}
-      <FiberOpticBackground />
+      {/* Efeito de fibra óptica - igual ao da página principal */}
+      <div className="absolute inset-0">
+        <div className="absolute w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(59,130,246,0.2)_0%,rgba(37,99,235,0.3)_100%)]"></div>
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute h-[3px] bg-blue-500"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              width: `${Math.random() * 200 + 100}px`,
+              transform: `rotate(${Math.random() * 360}deg)`,
+              opacity: Math.random() * 0.7 + 0.3,
+              boxShadow: '0 0 15px rgba(59,130,246,0.8)',
+            }}
+          ></div>
+        ))}
+      </div>
       
-      <div className="max-w-2xl mx-auto pt-8 relative z-10">
+      <div className="max-w-2xl mx-auto pt-8">
         {/* Logo como cabeçalho */}
         <div className="flex justify-center mb-6">
           <motion.img

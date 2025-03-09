@@ -1,12 +1,11 @@
 
-import React, { useState, useEffect } from "react";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { useAuth } from "../contexts/AuthContext";
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
-import { useToast } from "../components/ui/use-toast";
-import { FiberOpticBackground } from "../components/admin/FiberOpticBackground";
+import { useToast } from "@/components/ui/use-toast";
 
 const AdminLogin = () => {
   const [credentials, setCredentials] = useState({ username: "", password: "" });
@@ -15,23 +14,11 @@ const AdminLogin = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Verifica se existem usuários no localStorage
-    const checkForUsers = () => {
-      const users = JSON.parse(localStorage.getItem("users") || "[]");
-      setShowCreateAdmin(users.length === 0);
-    };
-    
-    checkForUsers();
-    
-    // Adiciona um listener para o evento storage para detectar mudanças em outros navegadores
-    window.addEventListener("storage", checkForUsers);
-    
-    return () => {
-      window.removeEventListener("storage", checkForUsers);
-    };
+    const users = JSON.parse(localStorage.getItem("users") || "[]");
+    setShowCreateAdmin(users.length === 0);
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (showCreateAdmin) {
       // Criar primeiro usuário admin
@@ -45,9 +32,6 @@ const AdminLogin = () => {
       };
       
       localStorage.setItem("users", JSON.stringify([adminUser]));
-      // Dispara um evento para notificar outros navegadores sobre a mudança
-      window.dispatchEvent(new Event("storage"));
-      
       toast({
         title: "Administrador criado",
         description: "O usuário administrador foi criado com sucesso",
@@ -65,9 +49,25 @@ const AdminLogin = () => {
       className="min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white relative overflow-hidden p-4"
     >
       {/* Efeito de fibra óptica */}
-      <FiberOpticBackground />
+      <div className="absolute inset-0">
+        <div className="absolute w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(59,130,246,0.2)_0%,rgba(37,99,235,0.3)_100%)]"></div>
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute h-[3px] bg-blue-500"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              width: `${Math.random() * 200 + 100}px`,
+              transform: `rotate(${Math.random() * 360}deg)`,
+              opacity: Math.random() * 0.7 + 0.3,
+              boxShadow: '0 0 15px rgba(59,130,246,0.8)',
+            }}
+          ></div>
+        ))}
+      </div>
 
-      <div className="relative h-screen flex flex-col items-center justify-center z-10">
+      <div className="relative h-screen flex flex-col items-center justify-center">
         <motion.img
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}

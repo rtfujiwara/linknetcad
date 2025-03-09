@@ -2,7 +2,11 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
-export const DashboardHeader = ({ onLogout }) => {
+interface DashboardHeaderProps {
+  onLogout: () => void;
+}
+
+export const DashboardHeader = ({ onLogout }: DashboardHeaderProps) => {
   return (
     <div className="flex flex-col items-center mb-8">
       <motion.img
