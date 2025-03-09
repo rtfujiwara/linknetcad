@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
+import { syncStorage } from "@/utils/syncStorage";
 
 interface ClientData {
   name: string;
@@ -56,15 +57,15 @@ const Index = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const savedPlans = JSON.parse(localStorage.getItem("plans") || "[]");
+    const savedPlans = syncStorage.getItem<{ id: number; name: string; price: number; description: string; }[]>("plans", []);
     setPlans(savedPlans);
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const clients = JSON.parse(localStorage.getItem("clients") || "[]");
+    const clients = syncStorage.getItem<(ClientData & { id: number })[]>("clients", []);
     clients.push({ ...formData, id: Date.now() });
-    localStorage.setItem("clients", JSON.stringify(clients));
+    syncStorage.setItem("clients", clients);
     
     setFormData({
       name: "",

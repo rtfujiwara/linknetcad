@@ -1,215 +1,79 @@
-
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/components/ui/use-toast";
-import { motion } from "framer-motion";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { useState, useEffect } from "react";
 import { ClientsTable } from "@/components/admin/ClientsTable";
-import { PlansManager } from "@/components/admin/PlansManager";
-import { UsersManager } from "@/components/admin/UsersManager";
 import { EditClientModal } from "@/components/admin/EditClientModal";
-import { printClient } from "@/utils/printClient";
 import { Client } from "@/types/client";
-import { Plan } from "@/types/plan";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { useToast } from "@/components/ui/use-toast";
+import { printClientData } from "@/utils/printClient";
+import { syncStorage } from "@/utils/syncStorage";
 
 const AdminDashboard = () => {
-  const { isAuthenticated, logout, hasPermission, isAdmin } = useAuth();
-  const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [updatedClient, setUpdatedClient] = useState<Client | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/admin");
-      return;
-    }
-    const savedClients = JSON.parse(localStorage.getItem("clients") || "[]");
-    const savedPlans = JSON.parse(localStorage.getItem("plans") || "[]");
+    loadClients();
+  }, []);
+
+  const loadClients = () => {
+    const savedClients = syncStorage.getItem<Client[]>("clients", []);
     setClients(savedClients);
-    setPlans(savedPlans);
-  }, [isAuthenticated, navigate]);
-
-  const handleAddPlan = (newPlan: Omit<Plan, "id">) => {
-    const plan = {
-      ...newPlan,
-      id: Date.now(),
-    };
-    const updatedPlans = [...plans, plan];
-    setPlans(updatedPlans);
-    localStorage.setItem("plans", JSON.stringify(updatedPlans));
-    toast({
-      title: "Plano adicionado",
-      description: "O novo plano foi cadastrado com sucesso",
-    });
   };
 
-  const handleDeletePlan = (id: number) => {
-    const updatedPlans = plans.filter(plan => plan.id !== id);
-    setPlans(updatedPlans);
-    localStorage.setItem("plans", JSON.stringify(updatedPlans));
-    toast({
-      title: "Plano removido",
-      description: "O plano foi removido com sucesso",
-    });
+  const handleEdit = (client: Client) => {
+    setEditingClient(client);
+    setUpdatedClient(client);
   };
 
-  const handleSaveClient = (updatedClient: Client) => {
-    const updatedClients = clients.map((c) =>
-      c.id === updatedClient.id ? updatedClient : c
+  const handlePrint = (client: Client) => {
+    printClientData(client);
+  };
+
+  const handleDelete = (client: Client) => {
+    if (window.confirm(`Tem certeza que deseja excluir o cliente ${client.name}?`)) {
+      const updatedClients = clients.filter((c) => c.id !== client.id);
+      syncStorage.setItem("clients", updatedClients);
+      setClients(updatedClients);
+      toast({
+        title: "Cliente excluído",
+        description: "O cliente foi removido com sucesso.",
+      });
+    }
+  };
+
+  const handleSaveEdit = (client: Client) => {
+    const updatedClients = clients.map((c) => 
+      c.id === client.id ? client : c
     );
+    syncStorage.setItem("clients", updatedClients);
     setClients(updatedClients);
-    localStorage.setItem("clients", JSON.stringify(updatedClients));
-    setSelectedClient(null);
+    setEditingClient(null);
+    setUpdatedClient(null);
     toast({
       title: "Cliente atualizado",
-      description: "Os dados do cliente foram atualizados com sucesso",
-    });
-  };
-
-  const handleDeleteClient = (client: Client) => {
-    setClientToDelete(client);
-  };
-
-  const confirmDeleteClient = () => {
-    if (!clientToDelete) return;
-    
-    const updatedClients = clients.filter(c => c.id !== clientToDelete.id);
-    setClients(updatedClients);
-    localStorage.setItem("clients", JSON.stringify(updatedClients));
-    setClientToDelete(null);
-    
-    toast({
-      title: "Cliente excluído",
-      description: "O cliente foi excluído com sucesso",
-      variant: "destructive",
+      description: "As informações do cliente foram atualizadas com sucesso.",
     });
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white relative overflow-hidden p-6"
-    >
-      {/* Efeito de fibra óptica */}
-      <div className="absolute inset-0">
-        <div className="absolute w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(59,130,246,0.2)_0%,rgba(37,99,235,0.3)_100%)]"></div>
-        {Array.from({ length: 20 }).map((_, i) => (
-          <div
-            key={i}
-            className="absolute h-[3px] bg-blue-500"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              width: `${Math.random() * 200 + 100}px`,
-              transform: `rotate(${Math.random() * 360}deg)`,
-              opacity: Math.random() * 0.7 + 0.3,
-              boxShadow: '0 0 15px rgba(59,130,246,0.8)',
-            }}
-          ></div>
-        ))}
-      </div>
-
-      <div className="max-w-[95%] mx-auto relative">
-        <div className="flex flex-col items-center mb-8">
-          <motion.img
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            src="/lovable-uploads/d03abdb3-b61b-43e7-b5d4-4983ff5fcf27.png"
-            alt="Linknet Vale Logo"
-            className="w-32 mb-6"
-          />
-          <div className="flex justify-between items-center w-full">
-            <h1 className="text-2xl font-semibold text-blue-900">
-              Painel Administrativo
-            </h1>
-            <Button onClick={logout} variant="outline" className="border-blue-300 text-blue-900 hover:bg-blue-50">
-              Sair
-            </Button>
-          </div>
-        </div>
-
-        <div className="bg-white/30 backdrop-blur-sm rounded-lg p-6 shadow-lg">
-          <Tabs defaultValue="clients" className="space-y-4">
-            <TabsList className="bg-white/50">
-              <TabsTrigger value="clients" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-900">Clientes</TabsTrigger>
-              {hasPermission("manage_plans") && (
-                <TabsTrigger value="plans" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-900">Planos</TabsTrigger>
-              )}
-              {hasPermission("manage_users") && (
-                <TabsTrigger value="users" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-900">Usuários</TabsTrigger>
-              )}
-            </TabsList>
-
-            <TabsContent value="clients">
-              <ClientsTable
-                clients={clients}
-                onEdit={client => hasPermission("edit_clients") && setSelectedClient(client)}
-                onPrint={client => hasPermission("print_clients") && printClient(client)}
-                onDelete={(isAdmin || hasPermission("delete_data")) ? handleDeleteClient : undefined}
-              />
-            </TabsContent>
-
-            <TabsContent value="plans">
-              <PlansManager
-                plans={plans}
-                onAddPlan={handleAddPlan}
-                onDeletePlan={handleDeletePlan}
-              />
-            </TabsContent>
-
-            <TabsContent value="users">
-              <UsersManager />
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {selectedClient && (
-          <EditClientModal
-            client={selectedClient}
-            onSave={handleSaveClient}
-            onCancel={() => setSelectedClient(null)}
-            onChange={setSelectedClient}
-          />
-        )}
-
-        <AlertDialog open={!!clientToDelete} onOpenChange={(open) => !open && setClientToDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-              <AlertDialogDescription>
-                Tem certeza que deseja excluir o cliente {clientToDelete?.name}? Esta ação não pode ser desfeita.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDeleteClient}>Excluir</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-    </motion.div>
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-bold mb-4">Painel Administrativo</h1>
+      <ClientsTable
+        clients={clients}
+        onEdit={handleEdit}
+        onPrint={handlePrint}
+        onDelete={handleDelete}
+      />
+      {editingClient && updatedClient && (
+        <EditClientModal
+          client={updatedClient}
+          onSave={handleSaveEdit}
+          onCancel={() => setEditingClient(null)}
+          onChange={(updatedClient) => setUpdatedClient(updatedClient)}
+        />
+      )}
+    </div>
   );
 };
 

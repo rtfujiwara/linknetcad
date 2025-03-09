@@ -3,6 +3,7 @@ import { createContext, useContext, useState, ReactNode, useEffect } from "react
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { User, Permission } from "@/types/user";
+import { syncStorage } from "@/utils/syncStorage";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -32,7 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = (username: string, password: string) => {
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
+    const users = syncStorage.getItem<User[]>("users", []);
     const user = users.find((u: User) => u.username === username);
 
     if (user && user.password === password) {
@@ -82,12 +83,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
+    const users = syncStorage.getItem<User[]>("users", []);
     const updatedUsers = users.map((u: User) => 
       u.id === currentUser.id ? { ...u, password: newPassword } : u
     );
 
-    localStorage.setItem("users", JSON.stringify(updatedUsers));
+    syncStorage.setItem("users", updatedUsers);
     setCurrentUser({ ...currentUser, password: newPassword });
     localStorage.setItem("currentUser", JSON.stringify({ ...currentUser, password: newPassword }));
 
