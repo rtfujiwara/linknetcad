@@ -1,17 +1,33 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { ClientsTable } from "@/components/admin/ClientsTable";
+import { PlansManager } from "@/components/admin/PlansManager";
+import { UsersManager } from "@/components/admin/UsersManager";
 import { EditClientModal } from "@/components/admin/EditClientModal";
 import { printClient } from "@/utils/printClient";
 import { Client } from "@/types/client";
 import { Plan } from "@/types/plan";
-import { FiberOpticBackground } from "@/components/admin/FiberOpticBackground";
-import { DashboardHeader } from "@/components/admin/DashboardHeader";
-import { DashboardTabs } from "@/components/admin/DashboardTabs";
-import { DeleteClientDialog } from "@/components/admin/DeleteClientDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const AdminDashboard = () => {
   const { isAuthenticated, logout, hasPermission, isAdmin } = useAuth();
@@ -95,26 +111,78 @@ const AdminDashboard = () => {
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gradient-to-b from-blue-100 via-blue-50 to-white relative overflow-hidden p-6"
     >
-      <FiberOpticBackground />
+      {/* Efeito de fibra óptica */}
+      <div className="absolute inset-0">
+        <div className="absolute w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(59,130,246,0.2)_0%,rgba(37,99,235,0.3)_100%)]"></div>
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute h-[3px] bg-blue-500"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              width: `${Math.random() * 200 + 100}px`,
+              transform: `rotate(${Math.random() * 360}deg)`,
+              opacity: Math.random() * 0.7 + 0.3,
+              boxShadow: '0 0 15px rgba(59,130,246,0.8)',
+            }}
+          ></div>
+        ))}
+      </div>
 
       <div className="max-w-[95%] mx-auto relative">
-        <DashboardHeader onLogout={logout} />
+        <div className="flex flex-col items-center mb-8">
+          <motion.img
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            src="/lovable-uploads/d03abdb3-b61b-43e7-b5d4-4983ff5fcf27.png"
+            alt="Linknet Vale Logo"
+            className="w-32 mb-6"
+          />
+          <div className="flex justify-between items-center w-full">
+            <h1 className="text-2xl font-semibold text-blue-900">
+              Painel Administrativo
+            </h1>
+            <Button onClick={logout} variant="outline" className="border-blue-300 text-blue-900 hover:bg-blue-50">
+              Sair
+            </Button>
+          </div>
+        </div>
 
         <div className="bg-white/30 backdrop-blur-sm rounded-lg p-6 shadow-lg">
-          <DashboardTabs 
-            clients={clients}
-            plans={plans}
-            hasManagePlansPermission={hasPermission("manage_plans")}
-            hasManageUsersPermission={hasPermission("manage_users")}
-            hasEditClientsPermission={hasPermission("edit_clients")}
-            hasPrintClientsPermission={hasPermission("print_clients")}
-            hasDeletePermission={isAdmin || hasPermission("delete_data")}
-            onEditClient={setSelectedClient}
-            onPrintClient={printClient}
-            onDeleteClient={handleDeleteClient}
-            onAddPlan={handleAddPlan}
-            onDeletePlan={handleDeletePlan}
-          />
+          <Tabs defaultValue="clients" className="space-y-4">
+            <TabsList className="bg-white/50">
+              <TabsTrigger value="clients" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-900">Clientes</TabsTrigger>
+              {hasPermission("manage_plans") && (
+                <TabsTrigger value="plans" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-900">Planos</TabsTrigger>
+              )}
+              {hasPermission("manage_users") && (
+                <TabsTrigger value="users" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-blue-900">Usuários</TabsTrigger>
+              )}
+            </TabsList>
+
+            <TabsContent value="clients">
+              <ClientsTable
+                clients={clients}
+                onEdit={client => hasPermission("edit_clients") && setSelectedClient(client)}
+                onPrint={client => hasPermission("print_clients") && printClient(client)}
+                onDelete={(isAdmin || hasPermission("delete_data")) ? handleDeleteClient : undefined}
+              />
+            </TabsContent>
+
+            <TabsContent value="plans">
+              <PlansManager
+                plans={plans}
+                onAddPlan={handleAddPlan}
+                onDeletePlan={handleDeletePlan}
+              />
+            </TabsContent>
+
+            <TabsContent value="users">
+              <UsersManager />
+            </TabsContent>
+          </Tabs>
         </div>
 
         {selectedClient && (
@@ -126,11 +194,20 @@ const AdminDashboard = () => {
           />
         )}
 
-        <DeleteClientDialog 
-          clientToDelete={clientToDelete}
-          onOpenChange={(open) => !open && setClientToDelete(null)}
-          onConfirmDelete={confirmDeleteClient}
-        />
+        <AlertDialog open={!!clientToDelete} onOpenChange={(open) => !open && setClientToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir o cliente {clientToDelete?.name}? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteClient}>Excluir</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </motion.div>
   );
