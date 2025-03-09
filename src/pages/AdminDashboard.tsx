@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { ClientsTable } from "@/components/admin/ClientsTable";
 import { EditClientModal } from "@/components/admin/EditClientModal";
 import { Client } from "@/types/client";
 import { useToast } from "@/components/ui/use-toast";
-import { printClientData } from "@/utils/printClient";
+import { printClient } from "@/utils/printClient";
 import { syncStorage } from "@/utils/syncStorage";
 
 const AdminDashboard = () => {
@@ -27,7 +28,7 @@ const AdminDashboard = () => {
   };
 
   const handlePrint = (client: Client) => {
-    printClientData(client);
+    printClient(client);
   };
 
   const handleDelete = (client: Client) => {
