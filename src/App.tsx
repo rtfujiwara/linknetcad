@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Index from "./pages/Index";
 import AdminLogin from "./pages/AdminLogin";
@@ -11,11 +11,12 @@ import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 
+// Cria uma nova instância do QueryClient
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
+    <HashRouter>
       <AuthProvider>
         <TooltipProvider>
           <Routes>
@@ -29,7 +30,7 @@ const App = () => (
           <Sonner />
         </TooltipProvider>
       </AuthProvider>
-    </BrowserRouter>
+    </HashRouter>
   </QueryClientProvider>
 );
 
