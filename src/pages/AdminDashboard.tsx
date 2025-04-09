@@ -9,22 +9,34 @@ import { syncStorage } from "@/utils/syncStorage";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { LogOut, Users, FileText, CalendarDays } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PlansManager } from "@/components/admin/PlansManager";
+import { UsersManager } from "@/components/admin/UsersManager";
+import { Plan } from "@/types/plan";
+import { userManagerUtils, planManagerUtils } from "@/components/admin/managerUtils";
 
 const AdminDashboard = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [updatedClient, setUpdatedClient] = useState<Client | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const { toast } = useToast();
-  const { logout } = useAuth();
+  const { logout, isAdmin, hasPermission } = useAuth();
 
   useEffect(() => {
     loadClients();
+    loadPlans();
   }, []);
 
   const loadClients = () => {
     const savedClients = syncStorage.getItem<Client[]>("clients", []);
     setClients(savedClients);
+  };
+
+  const loadPlans = () => {
+    const savedPlans = planManagerUtils.getPlans();
+    setPlans(savedPlans);
   };
 
   const handleEdit = (client: Client) => {
@@ -60,6 +72,32 @@ const AdminDashboard = () => {
       title: "Cliente atualizado",
       description: "As informações do cliente foram atualizadas com sucesso.",
     });
+  };
+
+  const handleAddPlan = (plan: Omit<Plan, "id">) => {
+    const newPlan: Plan = {
+      id: Date.now(),
+      ...plan,
+    };
+    const updatedPlans = [...plans, newPlan];
+    planManagerUtils.savePlans(updatedPlans);
+    setPlans(updatedPlans);
+    toast({
+      title: "Plano adicionado",
+      description: "O plano foi adicionado com sucesso.",
+    });
+  };
+
+  const handleDeletePlan = (id: number) => {
+    if (window.confirm("Tem certeza que deseja excluir este plano?")) {
+      const updatedPlans = plans.filter((p) => p.id !== id);
+      planManagerUtils.savePlans(updatedPlans);
+      setPlans(updatedPlans);
+      toast({
+        title: "Plano excluído",
+        description: "O plano foi removido com sucesso.",
+      });
+    }
   };
 
   return (
@@ -101,12 +139,53 @@ const AdminDashboard = () => {
         </header>
 
         <h1 className="text-2xl font-bold mb-4">Painel Administrativo</h1>
-        <ClientsTable
-          clients={clients}
-          onEdit={handleEdit}
-          onPrint={handlePrint}
-          onDelete={handleDelete}
-        />
+        
+        <Tabs defaultValue="clients" className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="clients" className="flex items-center gap-1">
+              <FileText className="w-4 h-4" />
+              Clientes
+            </TabsTrigger>
+            {(isAdmin || hasPermission("manage_plans")) && (
+              <TabsTrigger value="plans" className="flex items-center gap-1">
+                <CalendarDays className="w-4 h-4" />
+                Planos
+              </TabsTrigger>
+            )}
+            {(isAdmin || hasPermission("manage_users")) && (
+              <TabsTrigger value="users" className="flex items-center gap-1">
+                <Users className="w-4 h-4" />
+                Usuários
+              </TabsTrigger>
+            )}
+          </TabsList>
+          
+          <TabsContent value="clients" className="space-y-4">
+            <ClientsTable
+              clients={clients}
+              onEdit={handleEdit}
+              onPrint={handlePrint}
+              onDelete={handleDelete}
+            />
+          </TabsContent>
+          
+          {(isAdmin || hasPermission("manage_plans")) && (
+            <TabsContent value="plans" className="space-y-4">
+              <PlansManager 
+                plans={plans}
+                onAddPlan={handleAddPlan}
+                onDeletePlan={handleDeletePlan}
+              />
+            </TabsContent>
+          )}
+          
+          {(isAdmin || hasPermission("manage_users")) && (
+            <TabsContent value="users" className="space-y-4">
+              <UsersManager />
+            </TabsContent>
+          )}
+        </Tabs>
+        
         {editingClient && updatedClient && (
           <EditClientModal
             client={updatedClient}
@@ -121,4 +200,3 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
-
