@@ -12,7 +12,7 @@ interface AuthContextType {
   logout: () => void;
   hasPermission: (permission: Permission) => boolean;
   changePassword: (oldPassword: string, newPassword: string) => void;
-  isAdmin: boolean; // Added this property
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -23,17 +23,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Recupera os dados do usuário autenticado do armazenamento local
   useEffect(() => {
-    const authUser = localStorage.getItem("currentUser");
-    if (authUser) {
-      try {
-        const user = JSON.parse(authUser);
-        setCurrentUser(user);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error("Error parsing user data:", error);
-        localStorage.removeItem("currentUser");
-      }
+    const storedUser = syncStorage.getItem<User | null>("currentUser", null);
+    if (storedUser) {
+      setCurrentUser(storedUser);
+      setIsAuthenticated(true);
     }
   }, []);
 
@@ -44,7 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (user && user.password === password) {
       setIsAuthenticated(true);
       setCurrentUser(user);
-      localStorage.setItem("currentUser", JSON.stringify(user));
+      syncStorage.setItem("currentUser", user);
       navigate("/admin/dashboard");
       toast({
         title: "Login realizado com sucesso",
@@ -62,7 +57,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setIsAuthenticated(false);
     setCurrentUser(null);
-    localStorage.removeItem("currentUser");
+    syncStorage.removeItem("currentUser");
     navigate("/");
     toast({
       title: "Logout realizado",
@@ -94,8 +89,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     syncStorage.setItem("users", updatedUsers);
-    setCurrentUser({ ...currentUser, password: newPassword });
-    localStorage.setItem("currentUser", JSON.stringify({ ...currentUser, password: newPassword }));
+    
+    // Atualiza o usuário atual também
+    const updatedUser = { ...currentUser, password: newPassword };
+    setCurrentUser(updatedUser);
+    syncStorage.setItem("currentUser", updatedUser);
 
     toast({
       title: "Senha alterada",

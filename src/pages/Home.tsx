@@ -30,17 +30,15 @@ const Home = () => {
       </div>
 
       <div className="absolute top-4 right-4">
-        {/* Replace Link with a direct anchor using window.location.href */}
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="text-sm bg-white/10 text-blue-900 hover:bg-white/20 backdrop-blur-sm border-blue-200"
-          onClick={() => {
-            window.location.href = window.location.origin + window.location.pathname + '#/admin';
-          }}
-        >
-          Área Administrativa
-        </Button>
+        <Link to="/admin">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="text-sm bg-white/10 text-blue-900 hover:bg-white/20 backdrop-blur-sm border-blue-200"
+          >
+            Área Administrativa
+          </Button>
+        </Link>
       </div>
 
       <div className="h-screen flex flex-col items-center justify-center px-4">
@@ -65,14 +63,11 @@ const Home = () => {
             </h1>
             
             <div className="space-y-4">
-              <Button 
-                className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6"
-                onClick={() => {
-                  window.location.href = window.location.origin + window.location.pathname + '#/register';
-                }}
-              >
-                Cadastro de Cliente
-              </Button>
+              <Link to="/register">
+                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6">
+                  Cadastro de Cliente
+                </Button>
+              </Link>
             </div>
           </motion.div>
         </div>
