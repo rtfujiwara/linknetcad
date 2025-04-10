@@ -63,7 +63,7 @@ const Home = () => {
             </h1>
             
             <div className="space-y-4">
-              <Link to="/register">
+              <Link to="/register" className="block w-full">
                 <Button className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6">
                   Cadastro de Cliente
                 </Button>

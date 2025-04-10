@@ -30,26 +30,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setCurrentUser(storedUser);
       setIsAuthenticated(true);
     }
+    
+    // Adiciona listener para mudanças no armazenamento
+    const unsubscribe = syncStorage.addChangeListener((key, value) => {
+      if (key === "currentUser") {
+        if (value) {
+          setCurrentUser(value);
+          setIsAuthenticated(true);
+        } else {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+        }
+      }
+    });
+    
+    return () => {
+      // Limpa o listener quando o componente for desmontado
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
   }, []);
 
   const login = (username: string, password: string) => {
-    const users = syncStorage.getItem<User[]>("users", []);
-    const user = users.find((u: User) => u.username === username);
+    try {
+      const users = syncStorage.getItem<User[]>("users", []);
+      const user = users.find((u: User) => u.username === username);
 
-    if (user && user.password === password) {
-      setIsAuthenticated(true);
-      setCurrentUser(user);
-      syncStorage.setItem("currentUser", user);
-      navigate("/admin/dashboard");
-      toast({
-        title: "Login realizado com sucesso",
-        description: `Bem-vindo, ${user.name}!`,
-      });
-    } else {
+      if (user && user.password === password) {
+        setIsAuthenticated(true);
+        setCurrentUser(user);
+        syncStorage.setItem("currentUser", user);
+        navigate("/admin/dashboard");
+        toast({
+          title: "Login realizado com sucesso",
+          description: `Bem-vindo, ${user.name}!`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Erro no login",
+          description: "Credenciais inválidas",
+        });
+      }
+    } catch (error) {
+      console.error("Erro durante login:", error);
       toast({
         variant: "destructive",
         title: "Erro no login",
-        description: "Credenciais inválidas",
+        description: "Ocorreu um erro ao tentar fazer login",
       });
     }
   };
@@ -83,22 +112,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const users = syncStorage.getItem<User[]>("users", []);
-    const updatedUsers = users.map((u: User) => 
-      u.id === currentUser.id ? { ...u, password: newPassword } : u
-    );
+    try {
+      const users = syncStorage.getItem<User[]>("users", []);
+      const updatedUsers = users.map((u: User) => 
+        u.id === currentUser.id ? { ...u, password: newPassword } : u
+      );
 
-    syncStorage.setItem("users", updatedUsers);
-    
-    // Atualiza o usuário atual também
-    const updatedUser = { ...currentUser, password: newPassword };
-    setCurrentUser(updatedUser);
-    syncStorage.setItem("currentUser", updatedUser);
+      syncStorage.setItem("users", updatedUsers);
+      
+      // Atualiza o usuário atual também
+      const updatedUser = { ...currentUser, password: newPassword };
+      setCurrentUser(updatedUser);
+      syncStorage.setItem("currentUser", updatedUser);
 
-    toast({
-      title: "Senha alterada",
-      description: "Sua senha foi alterada com sucesso",
-    });
+      toast({
+        title: "Senha alterada",
+        description: "Sua senha foi alterada com sucesso",
+      });
+    } catch (error) {
+      console.error("Erro ao alterar senha:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Ocorreu um erro ao tentar alterar a senha",
+      });
+    }
   };
 
   // Compute isAdmin based on the currentUser

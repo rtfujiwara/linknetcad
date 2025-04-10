@@ -40,52 +40,61 @@ export const AddUserDialog = ({ onAddUser }: AddUserDialogProps) => {
   };
 
   const handleAddUser = () => {
-    if (!newUser.username || !newUser.password || !newUser.name) {
+    try {
+      if (!newUser.username || !newUser.password || !newUser.name) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Preencha todos os campos obrigatórios",
+        });
+        return;
+      }
+
+      const users = syncStorage.getItem<User[]>("users", []);
+      const userExists = users.some((u: User) => u.username === newUser.username);
+      if (userExists) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Nome de usuário já existe",
+        });
+        return;
+      }
+
+      const user: User = {
+        id: Date.now(),
+        ...newUser,
+        isAdmin: false,
+      };
+
+      // Adiciona o usuário à lista de usuários e salva no storage
+      const updatedUsers = [...users, user];
+      syncStorage.setItem("users", updatedUsers);
+      
+      // Chama a função onAddUser passada como prop
+      onAddUser(user);
+
+      // Limpa o formulário e fecha o diálogo
+      setNewUser({
+        username: "",
+        password: "",
+        name: "",
+        permissions: [],
+      });
+      setIsDialogOpen(false);
+      
+      toast({
+        title: "Sucesso",
+        description: "Usuário criado com sucesso",
+      });
+    } catch (error) {
+      console.error("Erro ao adicionar usuário:", error);
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
+        description: "Ocorreu um erro ao tentar criar o usuário",
       });
-      return;
     }
-
-    const users = syncStorage.getItem<User[]>("users", []);
-    const userExists = users.some((u: User) => u.username === newUser.username);
-    if (userExists) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Nome de usuário já existe",
-      });
-      return;
-    }
-
-    const user: User = {
-      id: Date.now(),
-      ...newUser,
-      isAdmin: false,
-    };
-
-    // Adiciona o usuário à lista de usuários e salva no storage
-    const updatedUsers = [...users, user];
-    syncStorage.setItem("users", updatedUsers);
-    
-    // Chama a função onAddUser passada como prop
-    onAddUser(user);
-
-    // Limpa o formulário e fecha o diálogo
-    setNewUser({
-      username: "",
-      password: "",
-      name: "",
-      permissions: [],
-    });
-    setIsDialogOpen(false);
-    
-    toast({
-      title: "Sucesso",
-      description: "Usuário criado com sucesso",
-    });
   };
 
   return (
