@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { User } from "@/types/user";
 import { PERMISSIONS, NewUserFormData } from "./userConstants";
+import { syncStorage } from "@/utils/syncStorage";
 
 interface AddUserDialogProps {
   onAddUser: (user: User) => void;
@@ -48,7 +49,7 @@ export const AddUserDialog = ({ onAddUser }: AddUserDialogProps) => {
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
+    const users = syncStorage.getItem<User[]>("users", []);
     const userExists = users.some((u: User) => u.username === newUser.username);
     if (userExists) {
       toast({
@@ -65,8 +66,14 @@ export const AddUserDialog = ({ onAddUser }: AddUserDialogProps) => {
       isAdmin: false,
     };
 
+    // Adiciona o usuário à lista de usuários e salva no storage
+    const updatedUsers = [...users, user];
+    syncStorage.setItem("users", updatedUsers);
+    
+    // Chama a função onAddUser passada como prop
     onAddUser(user);
 
+    // Limpa o formulário e fecha o diálogo
     setNewUser({
       username: "",
       password: "",
@@ -74,6 +81,11 @@ export const AddUserDialog = ({ onAddUser }: AddUserDialogProps) => {
       permissions: [],
     });
     setIsDialogOpen(false);
+    
+    toast({
+      title: "Sucesso",
+      description: "Usuário criado com sucesso",
+    });
   };
 
   return (
