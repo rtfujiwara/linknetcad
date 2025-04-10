@@ -28,6 +28,7 @@ export const ClientServiceFields = ({
         maxLength={2}
         placeholder="Ex: 05"
         value={client.dueDate}
+        onChange={(value) => onChange({ ...client, dueDate: value })}
         handleCustomChange={handleDueDateChange}
       />
 
