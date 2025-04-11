@@ -39,7 +39,7 @@ export const AddUserDialog = ({ onAddUser }: AddUserDialogProps) => {
     }));
   };
 
-  const handleAddUser = () => {
+  const handleAddUser = async () => {
     try {
       if (!newUser.username || !newUser.password || !newUser.name) {
         toast({
@@ -50,7 +50,9 @@ export const AddUserDialog = ({ onAddUser }: AddUserDialogProps) => {
         return;
       }
 
-      const users = syncStorage.getItem<User[]>("users", []);
+      // Get users and properly await the Promise
+      const users = await syncStorage.getItem<User[]>("users", []);
+      
       const userExists = users.some((u: User) => u.username === newUser.username);
       if (userExists) {
         toast({

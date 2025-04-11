@@ -4,6 +4,7 @@ import { User, Permission } from "@/types/user";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { userManagerUtils } from "@/components/admin/managerUtils";
+import { syncStorage } from "@/utils/syncStorage";
 
 export const useUserManager = () => {
   const { toast } = useToast();
