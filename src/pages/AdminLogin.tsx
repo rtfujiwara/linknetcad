@@ -7,41 +7,80 @@ import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 import { syncStorage } from "@/utils/syncStorage";
+import { Loader2 } from "lucide-react";
 
 const AdminLogin = () => {
   const [credentials, setCredentials] = useState({ username: "", password: "" });
   const [showCreateAdmin, setShowCreateAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { login } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    const users = syncStorage.getItem("users", []);
-    setShowCreateAdmin(users.length === 0);
-  }, []);
+    const checkUsers = async () => {
+      setIsLoading(true);
+      try {
+        const users = await syncStorage.getItem("users", []);
+        setShowCreateAdmin(users.length === 0);
+      } catch (error) {
+        console.error("Erro ao verificar usuários:", error);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Ocorreu um erro ao verificar os usuários existentes.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const handleSubmit = (e: React.FormEvent) => {
+    checkUsers();
+  }, [toast]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (showCreateAdmin) {
-      // Criar primeiro usuário admin
-      const adminUser = {
-        id: 1,
-        username: credentials.username,
-        password: credentials.password,
-        name: "Administrador",
-        isAdmin: true,
-        permissions: ["view_clients", "edit_clients", "print_clients", "manage_plans", "manage_users"]
-      };
-      
-      syncStorage.setItem("users", [adminUser]);
+    
+    try {
+      if (showCreateAdmin) {
+        // Criar primeiro usuário admin
+        const adminUser = {
+          id: 1,
+          username: credentials.username,
+          password: credentials.password,
+          name: "Administrador",
+          isAdmin: true,
+          permissions: ["view_clients", "edit_clients", "print_clients", "manage_plans", "manage_users"]
+        };
+        
+        await syncStorage.setItem("users", [adminUser]);
+        toast({
+          title: "Administrador criado",
+          description: "O usuário administrador foi criado com sucesso",
+        });
+        login(credentials.username, credentials.password);
+      } else {
+        login(credentials.username, credentials.password);
+      }
+    } catch (error) {
+      console.error("Erro ao processar login:", error);
       toast({
-        title: "Administrador criado",
-        description: "O usuário administrador foi criado com sucesso",
+        variant: "destructive",
+        title: "Erro no login",
+        description: "Ocorreu um erro ao processar o login. Por favor, tente novamente.",
       });
-      login(credentials.username, credentials.password);
-    } else {
-      login(credentials.username, credentials.password);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-100 via-blue-50 to-white">
+        <div className="flex flex-col items-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-4" />
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div

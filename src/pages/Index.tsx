@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { syncStorage } from "@/utils/syncStorage";
+import { Loader2 } from "lucide-react";
 
 interface ClientData {
   name: string;
@@ -53,51 +53,96 @@ const Index = () => {
     wifiPassword: "",
   });
   const [plans, setPlans] = useState<{ id: number; name: string; price: number; description: string; }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const savedPlans = syncStorage.getItem<{ id: number; name: string; price: number; description: string; }[]>("plans", []);
-    setPlans(savedPlans);
-  }, []);
+    const loadPlans = async () => {
+      setIsLoading(true);
+      try {
+        const savedPlans = await syncStorage.getItem<{ id: number; name: string; price: number; description: string; }[]>("plans", []);
+        setPlans(savedPlans);
+      } catch (error) {
+        console.error("Erro ao carregar planos:", error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao carregar planos",
+          description: "Ocorreu um erro ao carregar os planos disponíveis. Por favor, tente novamente.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const handleSubmit = (e: React.FormEvent) => {
+    loadPlans();
+
+    // Listener para mudanças nos planos
+    const unsubscribe = syncStorage.addChangeListener((key, value) => {
+      if (key === "plans") {
+        setPlans(value || []);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [toast]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const clients = syncStorage.getItem<(ClientData & { id: number })[]>("clients", []);
-    clients.push({ ...formData, id: Date.now() });
-    syncStorage.setItem("clients", clients);
     
-    setFormData({
-      name: "",
-      email: "",
-      document: "",
-      rgIe: "",
-      birthDate: "",
-      address: "",
-      number: "",
-      complement: "",
-      neighborhood: "",
-      city: "",
-      state: "",
-      zipCode: "",
-      condoName: "",
-      phone: "",
-      alternativePhone: "",
-      plan: "",
-      dueDate: "",
-      wifiName: "",
-      wifiPassword: "",
-    });
+    if (isLoading) {
+      toast({
+        variant: "destructive",
+        title: "Aguarde",
+        description: "Por favor, aguarde o carregamento dos planos.",
+      });
+      return;
+    }
     
-    toast({
-      title: "Cadastro realizado com sucesso!",
-      description: "Seus dados foram salvos.",
-    });
-    
-    // Redirecionar para a página principal após o cadastro
-    setTimeout(() => {
-      navigate("/");
-    }, 1500); // Pequeno delay para que o usuário veja a mensagem de sucesso
+    try {
+      const clients = await syncStorage.getItem<(ClientData & { id: number })[]>("clients", []);
+      const updatedClients = [...clients, { ...formData, id: Date.now() }];
+      await syncStorage.setItem("clients", updatedClients);
+      
+      setFormData({
+        name: "",
+        email: "",
+        document: "",
+        rgIe: "",
+        birthDate: "",
+        address: "",
+        number: "",
+        complement: "",
+        neighborhood: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        condoName: "",
+        phone: "",
+        alternativePhone: "",
+        plan: "",
+        dueDate: "",
+        wifiName: "",
+        wifiPassword: "",
+      });
+      
+      toast({
+        title: "Cadastro realizado com sucesso!",
+        description: "Seus dados foram salvos.",
+      });
+      
+      // Redirecionar para a página principal após o cadastro
+      setTimeout(() => {
+        navigate("/");
+      }, 1500); // Pequeno delay para que o usuário veja a mensagem de sucesso
+    } catch (error) {
+      console.error("Erro ao salvar cliente:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao cadastrar",
+        description: "Ocorreu um erro ao salvar seus dados. Por favor, tente novamente.",
+      });
+    }
   };
 
   const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,226 +200,242 @@ const Index = () => {
           <h1 className="text-2xl font-semibold text-center mb-6 text-gray-800">
             Cadastro de Cliente
           </h1>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome *</Label>
-              <Input
-                id="name"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
+          
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-4" />
+              <p className="text-gray-600">Carregando planos disponíveis...</p>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail *</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
+          ) : plans.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-red-500 mb-4">Nenhum plano disponível</p>
+              <p className="text-gray-600 mb-6">É necessário que um administrador adicione planos primeiro.</p>
+              <Link to="/">
+                <Button variant="outline">Voltar para a página inicial</Button>
+              </Link>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="document">CPF / CNPJ *</Label>
-              <Input
-                id="document"
-                required
-                value={formData.document}
-                onChange={(e) => setFormData({ ...formData, document: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="rgIe">RG / IE *</Label>
-              <Input
-                id="rgIe"
-                required
-                value={formData.rgIe}
-                onChange={(e) => setFormData({ ...formData, rgIe: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="birthDate">Data de Nascimento *</Label>
-              <Input
-                id="birthDate"
-                type="date"
-                required
-                value={formData.birthDate}
-                onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="address">Endereço *</Label>
+                <Label htmlFor="name">Nome *</Label>
                 <Input
-                  id="address"
+                  id="name"
                   required
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="number">Número *</Label>
+                <Label htmlFor="email">E-mail *</Label>
                 <Input
-                  id="number"
+                  id="email"
+                  type="email"
                   required
-                  value={formData.number}
-                  onChange={(e) => setFormData({ ...formData, number: e.target.value })}
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="complement">Complemento</Label>
-              <Input
-                id="complement"
-                value={formData.complement}
-                onChange={(e) => setFormData({ ...formData, complement: e.target.value })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="neighborhood">Bairro *</Label>
+                <Label htmlFor="document">CPF / CNPJ *</Label>
                 <Input
-                  id="neighborhood"
+                  id="document"
                   required
-                  value={formData.neighborhood}
-                  onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
+                  value={formData.document}
+                  onChange={(e) => setFormData({ ...formData, document: e.target.value })}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="city">Cidade *</Label>
+                <Label htmlFor="rgIe">RG / IE *</Label>
                 <Input
-                  id="city"
+                  id="rgIe"
                   required
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  value={formData.rgIe}
+                  onChange={(e) => setFormData({ ...formData, rgIe: e.target.value })}
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="state">Estado *</Label>
+                <Label htmlFor="birthDate">Data de Nascimento *</Label>
                 <Input
-                  id="state"
+                  id="birthDate"
+                  type="date"
                   required
-                  value={formData.state}
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  value={formData.birthDate}
+                  onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="address">Endereço *</Label>
+                  <Input
+                    id="address"
+                    required
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="number">Número *</Label>
+                  <Input
+                    id="number"
+                    required
+                    value={formData.number}
+                    onChange={(e) => setFormData({ ...formData, number: e.target.value })}
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="zipCode">CEP *</Label>
+                <Label htmlFor="complement">Complemento</Label>
                 <Input
-                  id="zipCode"
-                  required
-                  value={formData.zipCode}
-                  onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                  id="complement"
+                  value={formData.complement}
+                  onChange={(e) => setFormData({ ...formData, complement: e.target.value })}
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="condoName">Nome do Condomínio</Label>
-              <Input
-                id="condoName"
-                value={formData.condoName}
-                onChange={(e) => setFormData({ ...formData, condoName: e.target.value })}
-              />
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="neighborhood">Bairro *</Label>
+                  <Input
+                    id="neighborhood"
+                    required
+                    value={formData.neighborhood}
+                    onChange={(e) => setFormData({ ...formData, neighborhood: e.target.value })}
+                  />
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city">Cidade *</Label>
+                  <Input
+                    id="city"
+                    required
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="state">Estado *</Label>
+                  <Input
+                    id="state"
+                    required
+                    value={formData.state}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="zipCode">CEP *</Label>
+                  <Input
+                    id="zipCode"
+                    required
+                    value={formData.zipCode}
+                    onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="phone">Telefone *</Label>
+                <Label htmlFor="condoName">Nome do Condomínio</Label>
                 <Input
-                  id="phone"
-                  required
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  id="condoName"
+                  value={formData.condoName}
+                  onChange={(e) => setFormData({ ...formData, condoName: e.target.value })}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="alternativePhone">Telefone Recado</Label>
-                <Input
-                  id="alternativePhone"
-                  value={formData.alternativePhone}
-                  onChange={(e) => setFormData({ ...formData, alternativePhone: e.target.value })}
-                />
-              </div>
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefone *</Label>
+                  <Input
+                    id="phone"
+                    required
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="plan">Plano *</Label>
-                <select
-                  id="plan"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                  value={formData.plan}
-                  onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
-                >
-                  <option value="">Selecione um plano</option>
-                  {plans.map((plan) => (
-                    <option key={plan.id} value={plan.name}>
-                      {plan.name} - R$ {plan.price.toFixed(2)}
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-2">
+                  <Label htmlFor="alternativePhone">Telefone Recado</Label>
+                  <Input
+                    id="alternativePhone"
+                    value={formData.alternativePhone}
+                    onChange={(e) => setFormData({ ...formData, alternativePhone: e.target.value })}
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="dueDate">Dia de Vencimento *</Label>
-                <select
-                  id="dueDate"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
-                  value={formData.dueDate}
-                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                >
-                  <option value="">Selecione</option>
-                  <option value="05">05</option>
-                  <option value="10">10</option>
-                  <option value="20">20</option>
-                </select>
-              </div>
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="plan">Plano *</Label>
+                  <select
+                    id="plan"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    value={formData.plan}
+                    onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
+                  >
+                    <option value="">Selecione um plano</option>
+                    {plans.map((plan) => (
+                      <option key={plan.id} value={plan.name}>
+                        {plan.name} - R$ {plan.price.toFixed(2)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="wifiName">Nome do Wi-Fi</Label>
-                <Input
-                  id="wifiName"
-                  value={formData.wifiName}
-                  onChange={(e) => setFormData({ ...formData, wifiName: e.target.value })}
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="dueDate">Dia de Vencimento *</Label>
+                  <select
+                    id="dueDate"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+                    value={formData.dueDate}
+                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                  >
+                    <option value="">Selecione</option>
+                    <option value="05">05</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="wifiPassword">Senha do Wi-Fi</Label>
-                <Input
-                  id="wifiPassword"
-                  value={formData.wifiPassword}
-                  onChange={(e) => setFormData({ ...formData, wifiPassword: e.target.value })}
-                />
-              </div>
-            </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="wifiName">Nome do Wi-Fi</Label>
+                  <Input
+                    id="wifiName"
+                    value={formData.wifiName}
+                    onChange={(e) => setFormData({ ...formData, wifiName: e.target.value })}
+                  />
+                </div>
 
-            <div className="pt-6">
-              <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
-                Cadastrar
-              </Button>
-            </div>
-          </form>
+                <div className="space-y-2">
+                  <Label htmlFor="wifiPassword">Senha do Wi-Fi</Label>
+                  <Input
+                    id="wifiPassword"
+                    value={formData.wifiPassword}
+                    onChange={(e) => setFormData({ ...formData, wifiPassword: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-6">
+                <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
+                  Cadastrar
+                </Button>
+              </div>
+            </form>
+          )}
         </motion.div>
       </div>
     </motion.div>

@@ -13,11 +13,37 @@ export const useUserManager = () => {
   const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false);
   const [isEditPermissionsDialogOpen, setIsEditPermissionsDialogOpen] = useState(false);
   const [isDeleteUserDialogOpen, setIsDeleteUserDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const savedUsers = userManagerUtils.getUsers();
-    setUsers(savedUsers);
-  }, []);
+    const loadUsers = async () => {
+      setIsLoading(true);
+      try {
+        const savedUsers = await userManagerUtils.getUsers();
+        setUsers(savedUsers);
+      } catch (error) {
+        console.error("Erro ao carregar usuários:", error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao carregar usuários",
+          description: "Ocorreu um erro ao carregar a lista de usuários.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUsers();
+
+    // Adicionar listener para mudanças nos usuários
+    const unsubscribe = syncStorage.addChangeListener((key, value) => {
+      if (key === "users") {
+        setUsers(value || []);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [toast]);
 
   const handleAddUser = (user: User) => {
     const updatedUsers = [...users, user];
@@ -135,6 +161,7 @@ export const useUserManager = () => {
   return {
     users,
     selectedUser,
+    isLoading,
     isChangePasswordDialogOpen,
     isEditPermissionsDialogOpen,
     isDeleteUserDialogOpen,

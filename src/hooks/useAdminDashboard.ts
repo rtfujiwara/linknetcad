@@ -11,20 +11,48 @@ export function useAdminDashboard() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [updatedClient, setUpdatedClient] = useState<Client | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    loadClients();
-    loadPlans();
-  }, []);
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        await loadClients();
+        await loadPlans();
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao carregar dados",
+          description: "Ocorreu um erro ao carregar os dados. Por favor, tente novamente.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const loadClients = () => {
-    const savedClients = syncStorage.getItem<Client[]>("clients", []);
+    loadData();
+
+    // Listener para mudanças nos clientes e planos
+    const unsubscribe = syncStorage.addChangeListener((key, value) => {
+      if (key === "clients") {
+        setClients(value || []);
+      } else if (key === "plans") {
+        setPlans(value || []);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [toast]);
+
+  const loadClients = async () => {
+    const savedClients = await syncStorage.getItem<Client[]>("clients", []);
     setClients(savedClients);
   };
 
-  const loadPlans = () => {
-    const savedPlans = planManagerUtils.getPlans();
+  const loadPlans = async () => {
+    const savedPlans = await planManagerUtils.getPlans();
     setPlans(savedPlans);
   };
 
@@ -96,6 +124,7 @@ export function useAdminDashboard() {
     editingClient,
     updatedClient,
     plans,
+    isLoading,
     handleEdit,
     handlePrint,
     handleDelete,

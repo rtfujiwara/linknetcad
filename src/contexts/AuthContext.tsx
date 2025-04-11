@@ -1,97 +1,155 @@
-
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
-import { User, Permission } from "@/types/user";
 import { syncStorage } from "@/utils/syncStorage";
+import { User, Permission } from "@/types/user";
+import { toast } from "@/components/ui/use-toast";
 
 interface AuthContextType {
-  isAuthenticated: boolean;
   currentUser: User | null;
-  login: (username: string, password: string) => void;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
   hasPermission: (permission: Permission) => boolean;
-  changePassword: (oldPassword: string, newPassword: string) => void;
-  isAdmin: boolean;
+  isAdmin: () => boolean;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+export const useAuth = () => useContext(AuthContext);
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { toast } = useToast();
 
-  // Recupera os dados do usuário autenticado do armazenamento local
   useEffect(() => {
-    const storedUser = syncStorage.getItem<User | null>("currentUser", null);
-    if (storedUser) {
-      setCurrentUser(storedUser);
-      setIsAuthenticated(true);
-    }
-    
-    // Adiciona listener para mudanças no armazenamento
+    const initAuth = async () => {
+      try {
+        // Verificar se há um usuário logado
+        const storedUser = localStorage.getItem("currentUser");
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          setCurrentUser(user);
+        }
+      } catch (error) {
+        console.error("Erro ao inicializar autenticação:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initAuth();
+
+    // Adicionar listener para mudanças nos usuários
     const unsubscribe = syncStorage.addChangeListener((key, value) => {
-      if (key === "currentUser") {
-        if (value) {
-          setCurrentUser(value);
-          setIsAuthenticated(true);
+      // Se a lista de usuários mudar e o usuário atual estiver logado
+      if (key === "users" && currentUser) {
+        // Verifica se o usuário atual ainda existe na lista
+        const updatedUserList = value as User[];
+        const userStillExists = updatedUserList.some(user => user.id === currentUser.id);
+        
+        if (!userStillExists) {
+          // Se o usuário foi removido, faz logout
+          logout();
+          toast({
+            title: "Sessão encerrada",
+            description: "Sua conta foi removida por um administrador.",
+          });
         } else {
-          setCurrentUser(null);
-          setIsAuthenticated(false);
+          // Atualiza as informações do usuário atual
+          const updatedUser = updatedUserList.find(user => user.id === currentUser.id);
+          if (updatedUser) {
+            setCurrentUser(updatedUser);
+            localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+          }
         }
       }
     });
-    
+
     return () => {
-      // Limpa o listener quando o componente for desmontado
-      if (typeof unsubscribe === 'function') {
-        unsubscribe();
-      }
+      if (unsubscribe) unsubscribe();
     };
-  }, []);
+  }, [navigate, currentUser]);
 
-  const login = (username: string, password: string) => {
+  const login = async (username: string, password: string) => {
     try {
-      const users = syncStorage.getItem<User[]>("users", []);
-      const user = users.find((u: User) => u.username === username);
+      const users = await syncStorage.getItem<User[]>("users", []);
+      const user = users.find(
+        (u) => u.username === username && u.password === password
+      );
 
-      if (user && user.password === password) {
-        setIsAuthenticated(true);
+      if (user) {
         setCurrentUser(user);
-        syncStorage.setItem("currentUser", user);
+        localStorage.setItem("currentUser", JSON.stringify(user));
         navigate("/admin/dashboard");
-        toast({
-          title: "Login realizado com sucesso",
-          description: `Bem-vindo, ${user.name}!`,
-        });
+        return true;
       } else {
         toast({
           variant: "destructive",
           title: "Erro no login",
-          description: "Credenciais inválidas",
+          description: "Usuário ou senha incorretos",
         });
+        return false;
       }
     } catch (error) {
-      console.error("Erro durante login:", error);
+      console.error("Erro no login:", error);
       toast({
         variant: "destructive",
         title: "Erro no login",
-        description: "Ocorreu um erro ao tentar fazer login",
+        description: "Ocorreu um erro ao tentar fazer login. Por favor, tente novamente.",
       });
+      return false;
     }
   };
 
   const logout = () => {
-    setIsAuthenticated(false);
     setCurrentUser(null);
-    syncStorage.removeItem("currentUser");
-    navigate("/");
-    toast({
-      title: "Logout realizado",
-      description: "Você foi desconectado com sucesso",
-    });
+    localStorage.removeItem("currentUser");
+    navigate("/admin");
+  };
+
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    if (!currentUser) return false;
+
+    try {
+      if (currentUser.password !== currentPassword) {
+        toast({
+          variant: "destructive",
+          title: "Senha atual incorreta",
+          description: "A senha atual informada está incorreta.",
+        });
+        return false;
+      }
+
+      const users = await syncStorage.getItem<User[]>("users", []);
+      const updatedUsers = users.map((user) =>
+        user.id === currentUser.id ? { ...user, password: newPassword } : user
+      );
+
+      await syncStorage.setItem("users", updatedUsers);
+
+      const updatedUser = { ...currentUser, password: newPassword };
+      setCurrentUser(updatedUser);
+      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
+
+      toast({
+        title: "Senha alterada",
+        description: "Sua senha foi alterada com sucesso.",
+      });
+      return true;
+    } catch (error) {
+      console.error("Erro ao alterar senha:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao alterar senha",
+        description: "Ocorreu um erro ao alterar a senha. Por favor, tente novamente.",
+      });
+      return false;
+    }
   };
 
   const hasPermission = (permission: Permission): boolean => {
@@ -100,67 +158,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return currentUser.permissions.includes(permission);
   };
 
-  const changePassword = (oldPassword: string, newPassword: string) => {
-    if (!currentUser) return;
-
-    if (currentUser.password !== oldPassword) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Senha atual incorreta",
-      });
-      return;
-    }
-
-    try {
-      const users = syncStorage.getItem<User[]>("users", []);
-      const updatedUsers = users.map((u: User) => 
-        u.id === currentUser.id ? { ...u, password: newPassword } : u
-      );
-
-      syncStorage.setItem("users", updatedUsers);
-      
-      // Atualiza o usuário atual também
-      const updatedUser = { ...currentUser, password: newPassword };
-      setCurrentUser(updatedUser);
-      syncStorage.setItem("currentUser", updatedUser);
-
-      toast({
-        title: "Senha alterada",
-        description: "Sua senha foi alterada com sucesso",
-      });
-    } catch (error) {
-      console.error("Erro ao alterar senha:", error);
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Ocorreu um erro ao tentar alterar a senha",
-      });
-    }
+  const isAdmin = (): boolean => {
+    return !!currentUser?.isAdmin;
   };
 
-  // Compute isAdmin based on the currentUser
-  const isAdmin = currentUser?.isAdmin || false;
-
   return (
-    <AuthContext.Provider value={{ 
-      isAuthenticated, 
-      currentUser, 
-      login, 
-      logout, 
-      hasPermission,
-      changePassword,
-      isAdmin
-    }}>
-      {children}
+    <AuthContext.Provider
+      value={{ 
+        currentUser, 
+        login, 
+        logout, 
+        changePassword, 
+        hasPermission, 
+        isAdmin 
+      }}
+    >
+      {!loading && children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth deve ser usado dentro de um AuthProvider");
-  }
-  return context;
 };
