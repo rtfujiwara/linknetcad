@@ -14,6 +14,7 @@ const AdminLogin = () => {
   const [showCreateAdmin, setShowCreateAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
   const { login } = useAuth();
   const { toast } = useToast();
 
@@ -23,6 +24,13 @@ const AdminLogin = () => {
       setIsError(false);
       
       try {
+        // Verifica o status da conexão
+        const isOnline = await syncStorage.checkConnection();
+        setIsOfflineMode(!isOnline);
+        
+        // Inicializa dados padrão se necessário
+        await syncStorage.initializeDefaultData();
+        
         // Adiciona um timeout para não ficar travado infinitamente
         const timeoutPromise = new Promise<never>((_, reject) => {
           setTimeout(() => reject(new Error("Timeout ao verificar usuários")), 10000);
@@ -39,6 +47,7 @@ const AdminLogin = () => {
         // Se houver timeout ou erro, assume que não há usuários e permite criar admin
         setShowCreateAdmin(true);
         setIsError(true);
+        setIsOfflineMode(true);
         toast({
           variant: "destructive",
           title: "Erro de conexão",
@@ -52,6 +61,32 @@ const AdminLogin = () => {
     checkUsers();
   }, [toast]);
 
+  const retryConnection = async () => {
+    toast({
+      title: "Verificando conexão",
+      description: "Tentando reconectar ao servidor...",
+    });
+    
+    const isOnline = await syncStorage.checkConnection();
+    setIsOfflineMode(!isOnline);
+    
+    if (isOnline) {
+      toast({
+        title: "Conexão restabelecida",
+        description: "O sistema agora está operando em modo online.",
+      });
+      
+      // Recarrega a página para refletir as mudanças
+      window.location.reload();
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Falha na conexão",
+        description: "Não foi possível conectar ao servidor. Continuando em modo offline.",
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -64,13 +99,15 @@ const AdminLogin = () => {
           password: credentials.password,
           name: "Administrador",
           isAdmin: true,
-          permissions: ["view_clients", "edit_clients", "print_clients", "manage_plans", "manage_users"]
+          permissions: ["view_clients", "edit_clients", "print_clients", "delete_data", "manage_plans", "manage_users"]
         };
         
         await syncStorage.setItem("users", [adminUser]);
         toast({
           title: "Administrador criado",
-          description: "O usuário administrador foi criado com sucesso",
+          description: isOfflineMode 
+            ? "O usuário administrador foi criado localmente e será sincronizado quando a conexão for restabelecida."
+            : "O usuário administrador foi criado com sucesso",
         });
         login(credentials.username, credentials.password);
       } else {
@@ -141,11 +178,19 @@ const AdminLogin = () => {
             <h1 className="text-2xl font-semibold text-center mb-6 text-blue-900">
               {showCreateAdmin ? "Criar Primeiro Administrador" : "Acesso Administrativo"}
             </h1>
-            {isError && (
-              <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+            
+            {isOfflineMode && (
+              <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
                 <p>Funcionando em modo offline. Dados serão sincronizados quando a conexão for restabelecida.</p>
+                <button 
+                  onClick={retryConnection}
+                  className="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600 transition-colors"
+                >
+                  Reconectar
+                </button>
               </div>
             )}
+            
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="username" className="text-blue-900">Usuário</Label>
@@ -157,6 +202,7 @@ const AdminLogin = () => {
                     setCredentials({ ...credentials, username: e.target.value })
                   }
                   className="bg-white/50 border-blue-200"
+                  placeholder="Digite seu usuário"
                 />
               </div>
               
@@ -171,8 +217,16 @@ const AdminLogin = () => {
                     setCredentials({ ...credentials, password: e.target.value })
                   }
                   className="bg-white/50 border-blue-200"
+                  placeholder="Digite sua senha"
                 />
               </div>
+
+              {showCreateAdmin && (
+                <div className="bg-blue-50 p-3 rounded text-sm text-blue-800">
+                  <p>Bem-vindo ao primeiro acesso! Crie um usuário e senha para o administrador do sistema.</p>
+                  {isOfflineMode && <p className="mt-2 font-semibold">Nota: O sistema está operando em modo offline. Os dados serão sincronizados quando a conexão for restabelecida.</p>}
+                </div>
+              )}
 
               <Button
                 type="submit"
@@ -180,6 +234,13 @@ const AdminLogin = () => {
               >
                 {showCreateAdmin ? "Criar Administrador" : "Entrar"}
               </Button>
+              
+              {isOfflineMode && !showCreateAdmin && (
+                <div className="text-sm text-center text-gray-600">
+                  <p>Se você já tem uma conta mas não consegue fazer login, tente usar:</p>
+                  <p className="font-medium">Usuário: admin | Senha: admin</p>
+                </div>
+              )}
             </form>
           </motion.div>
         </div>

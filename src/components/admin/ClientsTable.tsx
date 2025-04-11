@@ -20,63 +20,86 @@ interface ClientsTableProps {
 }
 
 export const ClientsTable = ({ clients, onEdit, onPrint, onDelete }: ClientsTableProps) => {
-  const { currentUser, isAdmin, hasPermission } = useAuth();
+  const { currentUser, isAdmin, hasPermission, isOfflineMode, retryConnection } = useAuth();
   
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>E-mail</TableHead>
-            <TableHead>CPF/CNPJ</TableHead>
-            <TableHead>Telefone</TableHead>
-            <TableHead>Plano</TableHead>
-            <TableHead>Vencimento</TableHead>
-            <TableHead>Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {clients.map((client) => (
-            <TableRow key={client.id}>
-              <TableCell>{client.name}</TableCell>
-              <TableCell>{client.email}</TableCell>
-              <TableCell>{client.document}</TableCell>
-              <TableCell>{client.phone}</TableCell>
-              <TableCell>{client.plan}</TableCell>
-              <TableCell>{client.dueDate}</TableCell>
-              <TableCell>
-                <div className="space-x-2">
-                  <ViewClientData client={client} />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onEdit(client)}
-                  >
-                    Editar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onPrint(client)}
-                  >
-                    Imprimir
-                  </Button>
-                  {(isAdmin || hasPermission("delete_data")) && onDelete && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => onDelete(client)}
-                    >
-                      Excluir
-                    </Button>
-                  )}
-                </div>
-              </TableCell>
+      {isOfflineMode && (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
+          <p>Funcionando em modo offline. Dados serão sincronizados quando a conexão for restabelecida.</p>
+          <button 
+            onClick={retryConnection}
+            className="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600 transition-colors"
+          >
+            Tentar reconectar
+          </button>
+        </div>
+      )}
+      
+      {clients.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-500 mb-4">Nenhum cliente cadastrado</p>
+          {isOfflineMode && (
+            <p className="text-sm text-gray-400">
+              Você está em modo offline. Novos clientes cadastrados aparecerão aqui quando a conexão for restabelecida.
+            </p>
+          )}
+        </div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nome</TableHead>
+              <TableHead>E-mail</TableHead>
+              <TableHead>CPF/CNPJ</TableHead>
+              <TableHead>Telefone</TableHead>
+              <TableHead>Plano</TableHead>
+              <TableHead>Vencimento</TableHead>
+              <TableHead>Ações</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {clients.map((client) => (
+              <TableRow key={client.id}>
+                <TableCell>{client.name}</TableCell>
+                <TableCell>{client.email}</TableCell>
+                <TableCell>{client.document}</TableCell>
+                <TableCell>{client.phone}</TableCell>
+                <TableCell>{client.plan}</TableCell>
+                <TableCell>{client.dueDate}</TableCell>
+                <TableCell>
+                  <div className="space-x-2">
+                    <ViewClientData client={client} />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onEdit(client)}
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onPrint(client)}
+                    >
+                      Imprimir
+                    </Button>
+                    {(isAdmin || hasPermission("delete_data")) && onDelete && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => onDelete(client)}
+                      >
+                        Excluir
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
     </div>
   );
 };
