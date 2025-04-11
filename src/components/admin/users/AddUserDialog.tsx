@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { User } from "@/types/user";
+import { User, Permission } from "@/types/user";
 import { PERMISSIONS, NewUserFormData } from "./userConstants";
 import { syncStorage } from "@/utils/syncStorage";
 
@@ -30,7 +30,7 @@ export const AddUserDialog = ({ onAddUser }: AddUserDialogProps) => {
     permissions: [],
   });
 
-  const togglePermission = (permission: typeof PERMISSIONS[0]["value"]) => {
+  const togglePermission = (permission: Permission) => {
     setNewUser((prev) => ({
       ...prev,
       permissions: prev.permissions.includes(permission)
@@ -53,7 +53,7 @@ export const AddUserDialog = ({ onAddUser }: AddUserDialogProps) => {
       // Get users and properly await the Promise
       const users = await syncStorage.getItem<User[]>("users", []);
       
-      const userExists = users.some((u: User) => u.username === newUser.username);
+      const userExists = users.some((u) => u.username === newUser.username);
       if (userExists) {
         toast({
           variant: "destructive",

@@ -3,11 +3,12 @@ import React, { createContext, useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { syncStorage } from "@/utils/syncStorage";
 import { useToast } from "@/components/ui/use-toast";
-import { User } from "@/types/user";
+import { User, Permission } from "@/types/user";
 
 interface AuthContextData {
   currentUser: User | null;
   isAuthenticated: boolean;
+  isAdmin: boolean; // Adicionando a propriedade isAdmin
   login: (username: string, password: string) => void;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
@@ -111,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const hasPermission = (permission: string): boolean => {
     if (!currentUser) return false;
     if (currentUser.isAdmin) return true;
-    return currentUser.permissions.includes(permission);
+    return currentUser.permissions.includes(permission as Permission);
   };
 
   if (isLoading) {
@@ -123,6 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         currentUser,
         isAuthenticated: !!currentUser,
+        isAdmin: currentUser?.isAdmin || false,
         login,
         logout,
         hasPermission,

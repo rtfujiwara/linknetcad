@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { User } from "@/types/user";
+import { User, Permission } from "@/types/user";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { userManagerUtils } from "@/components/admin/managerUtils";
@@ -20,19 +19,16 @@ export const useUserManager = () => {
     const loadUsers = async () => {
       setIsLoading(true);
       try {
-        // Adiciona um timeout para não ficar preso infinitamente
         const timeoutPromise = new Promise<never>((_, reject) => {
           setTimeout(() => reject(new Error("Timeout ao carregar usuários")), 10000);
         });
         
         const usersPromise = userManagerUtils.getUsers();
         
-        // Utiliza Promise.race para garantir que não ficará carregando para sempre
         const fetchedUsers = await Promise.race([usersPromise, timeoutPromise]);
         setUsers(fetchedUsers);
       } catch (error) {
         console.error("Erro ao carregar usuários:", error);
-        // Em caso de erro, tenta carregar do localStorage
         const localUsers = userManagerUtils.getUsersSync();
         setUsers(localUsers);
         toast({
@@ -47,7 +43,6 @@ export const useUserManager = () => {
 
     loadUsers();
     
-    // Listener para atualizações nos usuários
     const unsubscribe = syncStorage.addChangeListener((key, value) => {
       if (key === "users") {
         setUsers(value || []);
@@ -100,7 +95,7 @@ export const useUserManager = () => {
     }
   };
 
-  const handleEditPermissions = async (userId: number, permissions: string[]) => {
+  const handleEditPermissions = async (userId: number, permissions: Permission[]) => {
     try {
       const updatedUsers = users.map((user) =>
         user.id === userId ? { ...user, permissions } : user
@@ -126,7 +121,6 @@ export const useUserManager = () => {
 
   const handleDeleteUser = async (userId: number) => {
     try {
-      // Não permite excluir o próprio usuário
       if (userId === currentUser?.id) {
         toast({
           variant: "destructive",

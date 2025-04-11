@@ -20,7 +20,7 @@ interface ClientsTableProps {
 }
 
 export const ClientsTable = ({ clients, onEdit, onPrint, onDelete }: ClientsTableProps) => {
-  const { isAdmin, hasPermission } = useAuth();
+  const { currentUser, isAdmin, hasPermission } = useAuth();
   
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 overflow-x-auto">
