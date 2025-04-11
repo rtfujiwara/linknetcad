@@ -2,7 +2,6 @@
 /**
  * Utilitário para sincronizar dados entre diferentes navegadores
  * usando Firebase Realtime Database para armazenamento em nuvem
- * e localStorage como backup
  */
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, set, get, onValue, remove, Database } from "firebase/database";
@@ -37,18 +36,26 @@ const initializeFirebase = () => {
     console.error("Erro ao inicializar Firebase:", error);
     firebaseInitialized = false;
     database = null;
-    return null;
+    throw new Error("Não foi possível conectar ao banco de dados. Verifique sua conexão com a internet.");
   }
 };
 
 // Tenta inicializar o Firebase imediatamente
-initializeFirebase();
+try {
+  initializeFirebase();
+} catch (error) {
+  console.error("Erro na inicialização inicial do Firebase:", error);
+}
 
 // Verifica a conexão com o Firebase
 const checkFirebaseConnection = async (): Promise<boolean> => {
   if (!database) {
-    database = initializeFirebase();
-    if (!database) return false;
+    try {
+      database = initializeFirebase();
+      if (!database) return false;
+    } catch (error) {
+      throw new Error("Não foi possível estabelecer conexão com o banco de dados.");
+    }
   }
   
   try {
@@ -58,27 +65,11 @@ const checkFirebaseConnection = async (): Promise<boolean> => {
     return snapshot.exists() && snapshot.val() === true;
   } catch (error) {
     console.error("Erro ao verificar conexão com Firebase:", error);
-    return false;
+    throw new Error("Erro de conexão com o banco de dados. Verifique sua internet e tente novamente.");
   }
 };
 
 export const syncStorage = {
-  // Dados em memória que podem ser acessados durante a sessão atual
-  memoryStorage: new Map<string, any>(),
-  
-  // Flag para indicar se está operando em modo offline
-  isOfflineMode: false,
-  
-  // Configura o modo offline
-  setOfflineMode: (offline: boolean) => {
-    syncStorage.isOfflineMode = offline;
-    if (offline) {
-      console.log("Operando em modo offline");
-    } else {
-      console.log("Operando em modo online");
-    }
-  },
-
   // Armazena dados com timestamp
   setItem: async <T>(key: string, value: T): Promise<void> => {
     try {
@@ -87,144 +78,101 @@ export const syncStorage = {
         data: value,
       };
       
-      // Armazena no localStorage como backup
-      localStorage.setItem(key, JSON.stringify(event));
-      
-      // Armazena também em memória para acesso rápido
-      syncStorage.memoryStorage.set(key, value);
-      
-      // Se estiver em modo offline, não tenta sincronizar com o Firebase
-      if (syncStorage.isOfflineMode) {
-        window.dispatchEvent(new CustomEvent('storage-change', { detail: { key, value } }));
-        return;
-      }
-      
       // Verifica a conexão antes de tentar sincronizar
-      const isConnected = await checkFirebaseConnection();
-      
-      // Armazena no Firebase Realtime Database se disponível e conectado
-      if (isConnected && database) {
-        const dbRef = ref(database, key);
-        await set(dbRef, event);
-        console.log(`Dados sincronizados com Firebase: ${key}`);
-      } else {
-        console.warn(`Firebase indisponível, dados armazenados apenas localmente: ${key}`);
+      if (!database) {
+        await initializeFirebase();
       }
+      
+      if (!database) {
+        throw new Error("Não foi possível conectar ao banco de dados.");
+      }
+      
+      // Armazena no Firebase Realtime Database
+      const dbRef = ref(database, key);
+      await set(dbRef, event);
+      console.log(`Dados sincronizados com Firebase: ${key}`);
+      
+      // Armazena em localStorage apenas como cache temporário
+      localStorage.setItem(key, JSON.stringify(event));
       
       // Notifica sobre a mudança (útil para sincronizar componentes)
       window.dispatchEvent(new CustomEvent('storage-change', { detail: { key, value } }));
     } catch (error) {
       console.error("Erro ao armazenar dados:", error);
-      // Garante que mesmo com erro, os dados estão no localStorage
-      const event = {
-        timestamp: Date.now(),
-        data: value,
-      };
-      localStorage.setItem(key, JSON.stringify(event));
+      throw new Error("Não foi possível salvar os dados. Verifique sua conexão com a internet e tente novamente.");
     }
   },
 
   // Obtém dados do armazenamento
   getItem: async <T>(key: string, defaultValue: T): Promise<T> => {
     try {
-      // Tenta obter do armazenamento em memória primeiro (mais rápido)
-      if (syncStorage.memoryStorage.has(key)) {
-        return syncStorage.memoryStorage.get(key);
-      }
-      
-      // Se estiver em modo offline, usa apenas localStorage
-      if (syncStorage.isOfflineMode) {
-        const localData = syncStorage.getItemFromLocalStorage<T>(key, defaultValue);
-        return localData;
-      }
-      
       // Verifica a conexão antes de tentar obter do Firebase
-      const isConnected = await checkFirebaseConnection();
-      
-      // Se o Firebase não estiver disponível ou não conectado, usa o localStorage
-      if (!isConnected || !database) {
-        syncStorage.setOfflineMode(true);
-        const localData = syncStorage.getItemFromLocalStorage<T>(key, defaultValue);
-        return localData;
+      if (!database) {
+        await initializeFirebase();
       }
       
-      // Se Firebase disponível e conectado, obtém de lá
+      if (!database) {
+        throw new Error("Não foi possível conectar ao banco de dados.");
+      }
+      
       try {
         const dbRef = ref(database, key);
         const snapshot = await Promise.race([
           get(dbRef),
           new Promise<never>((_, reject) => 
-            setTimeout(() => reject(new Error("Timeout ao buscar dados do Firebase")), 5000)
+            setTimeout(() => reject(new Error("Tempo esgotado ao buscar dados do banco de dados")), 10000)
           )
         ]);
         
         if (snapshot && snapshot.exists()) {
           const event = snapshot.val();
-          // Armazena na memória para acesso rápido futuro
-          syncStorage.memoryStorage.set(key, event.data);
-          // Atualiza o localStorage como backup
+          // Atualiza o localStorage como cache
           localStorage.setItem(key, JSON.stringify(event));
           return event.data;
         } else {
-          // Se não existir no Firebase, tenta obter do localStorage
-          const localData = syncStorage.getItemFromLocalStorage<T>(key, defaultValue);
-          
-          // Se encontrou dados no localStorage, sincroniza com o Firebase
-          if (localData !== defaultValue && database) {
-            const event = {
-              timestamp: Date.now(),
-              data: localData,
-            };
-            
-            const dbRef = ref(database, key);
-            set(dbRef, event).catch(error => {
-              console.error(`Erro ao sincronizar ${key} com Firebase:`, error);
-            });
+          // Se não existir no Firebase, verifica se existe localmente para sincronizar
+          const stored = localStorage.getItem(key);
+          if (stored) {
+            try {
+              const event = JSON.parse(stored);
+              // Sincroniza com o Firebase
+              const dbRef = ref(database, key);
+              await set(dbRef, {
+                timestamp: Date.now(),
+                data: event.data
+              });
+              return event.data;
+            } catch (e) {
+              console.error("Erro ao interpretar dados do localStorage:", e);
+            }
           }
-          
-          return localData;
+          return defaultValue;
         }
       } catch (error) {
         console.error("Erro ao obter dados do Firebase:", error);
-        syncStorage.setOfflineMode(true);
-        
-        // Tenta do localStorage como fallback
-        const localData = syncStorage.getItemFromLocalStorage<T>(key, defaultValue);
-        return localData;
+        throw new Error("Não foi possível carregar os dados. Verifique sua conexão com a internet e tente novamente.");
       }
     } catch (error) {
       console.error("Erro ao recuperar dados armazenados:", error);
-      return defaultValue;
+      throw new Error("Erro ao recuperar dados. Por favor, verifique sua conexão e tente novamente.");
     }
   },
   
-  // Função auxiliar para obter dados do localStorage
-  getItemFromLocalStorage: <T>(key: string, defaultValue: T): T => {
-    const stored = localStorage.getItem(key);
-    if (!stored) return defaultValue;
-    
-    try {
-      const event = JSON.parse(stored);
-      syncStorage.memoryStorage.set(key, event.data);
-      return event.data;
-    } catch (e) {
-      console.error("Erro ao interpretar dados do localStorage:", e);
-      return defaultValue;
-    }
-  },
-
-  // Versão síncrona de getItem (para compatibilidade com código existente)
+  // Versão síncrona apenas para compatibilidade (sempre tenta primeiro do Firebase)
   getItemSync: <T>(key: string, defaultValue: T): T => {
     try {
-      // Tenta obter do armazenamento em memória primeiro (mais rápido)
-      if (syncStorage.memoryStorage.has(key)) {
-        return syncStorage.memoryStorage.get(key);
-      }
+      const stored = localStorage.getItem(key);
+      if (!stored) return defaultValue;
       
-      // Se não estiver em memória, obtém do localStorage
-      return syncStorage.getItemFromLocalStorage(key, defaultValue);
+      try {
+        const event = JSON.parse(stored);
+        return event.data;
+      } catch (e) {
+        console.error("Erro ao interpretar dados do cache local:", e);
+        return defaultValue;
+      }
     } catch (error) {
-      console.error("Erro ao recuperar dados armazenados:", error);
+      console.error("Erro ao recuperar dados do cache:", error);
       return defaultValue;
     }
   },
@@ -232,36 +180,34 @@ export const syncStorage = {
   // Remove item do armazenamento
   removeItem: async (key: string): Promise<void> => {
     try {
+      // Remove do localStorage
       localStorage.removeItem(key);
-      syncStorage.memoryStorage.delete(key);
-      
-      // Se estiver em modo offline, não tenta remover do Firebase
-      if (syncStorage.isOfflineMode) {
-        window.dispatchEvent(new CustomEvent('storage-change', { detail: { key, value: null } }));
-        return;
-      }
       
       // Verifica a conexão antes de tentar remover do Firebase
-      const isConnected = await checkFirebaseConnection();
-      
-      // Remove do Firebase se disponível e conectado
-      if (isConnected && database) {
-        const dbRef = ref(database, key);
-        await remove(dbRef);
+      if (!database) {
+        await initializeFirebase();
       }
+      
+      if (!database) {
+        throw new Error("Não foi possível conectar ao banco de dados.");
+      }
+      
+      // Remove do Firebase
+      const dbRef = ref(database, key);
+      await remove(dbRef);
       
       // Notifica sobre a remoção
       window.dispatchEvent(new CustomEvent('storage-change', { detail: { key, value: null } }));
     } catch (error) {
       console.error("Erro ao remover dados:", error);
+      throw new Error("Não foi possível remover os dados. Verifique sua conexão com a internet.");
     }
   },
   
   // Limpa todos os itens
-  clear: (): void => {
+  clear: async (): Promise<void> => {
     try {
       localStorage.clear();
-      syncStorage.memoryStorage.clear();
       
       // Notifica sobre a limpeza
       window.dispatchEvent(new CustomEvent('storage-change', { detail: { key: null, value: null } }));
@@ -281,15 +227,14 @@ export const syncStorage = {
     // Também ouvir mudanças do Firebase se disponível
     const unsubscribeCallbacks: (() => void)[] = [];
     
-    if (!syncStorage.isOfflineMode && database) {
+    if (database) {
       // Ouvir mudanças nos dados comuns
       ["users", "clients", "plans"].forEach(key => {
         const dbRef = ref(database!, key);
         const unsubscribe = onValue(dbRef, (snapshot) => {
           if (snapshot.exists()) {
             const event = snapshot.val();
-            // Atualiza a memória e o localStorage
-            syncStorage.memoryStorage.set(key, event.data);
+            // Atualiza o localStorage como cache
             localStorage.setItem(key, JSON.stringify(event));
             // Notifica a mudança
             callback(key, event.data);
@@ -309,22 +254,25 @@ export const syncStorage = {
     };
   },
   
-  // Verifica conexão e atualiza o modo offline
+  // Verifica conexão e rejeita caso não esteja conectado
   checkConnection: async (): Promise<boolean> => {
     try {
       const isConnected = await checkFirebaseConnection();
-      syncStorage.setOfflineMode(!isConnected);
-      return isConnected;
+      if (!isConnected) {
+        throw new Error("Sem conexão com o banco de dados. Verifique sua internet e tente novamente.");
+      }
+      return true;
     } catch (error) {
       console.error("Erro ao verificar conexão:", error);
-      syncStorage.setOfflineMode(true);
-      return false;
+      throw error;
     }
   },
   
-  // Inicializa dados locais se necessário
+  // Inicializa dados padrão
   initializeDefaultData: async () => {
     try {
+      await checkFirebaseConnection();
+      
       // Verifica se já existem usuários
       const users = await syncStorage.getItem("users", []);
       if (!users || users.length === 0) {
@@ -372,6 +320,7 @@ export const syncStorage = {
       }
     } catch (error) {
       console.error("Erro ao inicializar dados padrão:", error);
+      throw new Error("Não foi possível inicializar os dados padrão. Verifique sua conexão com a internet.");
     }
   }
 };
@@ -379,13 +328,10 @@ export const syncStorage = {
 // Inicializa o sistema na carga do módulo
 (async () => {
   try {
-    // Verifica a conexão inicial
+    // Verifica a conexão inicial e inicializa dados padrão
     await syncStorage.checkConnection();
-    
-    // Inicializa dados padrão se necessário
     await syncStorage.initializeDefaultData();
   } catch (error) {
     console.error("Erro na inicialização do syncStorage:", error);
-    syncStorage.setOfflineMode(true);
   }
 })();

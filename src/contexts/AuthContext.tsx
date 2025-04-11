@@ -9,7 +9,7 @@ interface AuthContextData {
   currentUser: User | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  login: (username: string, password: string) => void;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
   isOfflineMode: boolean;
@@ -27,12 +27,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkAndUpdateOfflineStatus = async () => {
     try {
-      const isOnline = await syncStorage.checkConnection();
-      setIsOfflineMode(!isOnline);
-      return isOnline;
+      await syncStorage.checkConnection();
+      setIsOfflineMode(false);
+      return true;
     } catch (error) {
       console.error("Erro ao verificar status da conexão:", error);
       setIsOfflineMode(true);
+      
+      // Mostra mensagem de erro para o usuário
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: error instanceof Error ? error.message : "Não foi possível conectar ao banco de dados. Verifique sua conexão com a internet.",
+      });
+      
       return false;
     }
   };
@@ -40,25 +48,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const retryConnection = async (): Promise<boolean> => {
     toast({
       title: "Verificando conexão",
-      description: "Tentando reconectar ao servidor...",
+      description: "Tentando conectar ao banco de dados...",
     });
     
-    const isOnline = await checkAndUpdateOfflineStatus();
-    
-    if (isOnline) {
+    try {
+      await syncStorage.checkConnection();
+      setIsOfflineMode(false);
+      
       toast({
-        title: "Conexão restabelecida",
-        description: "O sistema agora está operando em modo online.",
+        title: "Conexão estabelecida",
+        description: "Conexão com o banco de dados estabelecida com sucesso.",
       });
-    } else {
+      
+      return true;
+    } catch (error) {
+      setIsOfflineMode(true);
+      
       toast({
         variant: "destructive",
         title: "Falha na conexão",
-        description: "Não foi possível conectar ao servidor. Continuando em modo offline.",
+        description: error instanceof Error ? error.message : "Não foi possível conectar ao banco de dados. Verifique sua conexão com a internet.",
       });
+      
+      return false;
     }
-    
-    return isOnline;
   };
 
   useEffect(() => {
@@ -73,11 +86,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setCurrentUser(JSON.parse(storedUser));
         }
         
-        // Inicializar dados padrão se necessário (assegura que sempre teremos ao menos dados básicos)
+        // Inicializar dados padrão se necessário
         await syncStorage.initializeDefaultData();
       } catch (error) {
         console.error("Erro ao verificar autenticação:", error);
         setIsOfflineMode(true);
+        
+        toast({
+          variant: "destructive",
+          title: "Erro de conexão",
+          description: error instanceof Error ? error.message : "Não foi possível conectar ao banco de dados. Verifique sua conexão com a internet.",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -113,31 +132,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       
       // Verifica a conexão primeiro
-      await checkAndUpdateOfflineStatus();
+      await syncStorage.checkConnection();
       
-      // Adiciona um timeout para não ficar preso infinitamente
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Timeout ao tentar login")), 10000);
-      });
-      
-      const usersPromise = syncStorage.getItem<User[]>("users", []);
-      
-      // Utiliza Promise.race para garantir que não ficará carregando para sempre
-      let users;
-      try {
-        users = await Promise.race([usersPromise, timeoutPromise]);
-      } catch (error) {
-        console.error("Erro ao obter usuários:", error);
-        // Em caso de erro, tenta obter do localStorage
-        users = syncStorage.getItemSync<User[]>("users", []);
-      }
+      // Obtém a lista de usuários
+      const users = await syncStorage.getItem<User[]>("users", []);
       
       // Se não existem usuários, criar o admin padrão
       if (!users || users.length === 0) {
         await syncStorage.initializeDefaultData();
-        users = syncStorage.getItemSync<User[]>("users", []);
+        const updatedUsers = await syncStorage.getItem<User[]>("users", []);
+        
+        if (!updatedUsers || updatedUsers.length === 0) {
+          throw new Error("Não foi possível criar o usuário admin padrão. Verifique sua conexão com a internet.");
+        }
       }
       
+      // Busca o usuário com as credenciais fornecidas
       const user = users.find(u => u.username === username && u.password === password);
       
       if (user) {
@@ -146,10 +156,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         navigate("/admin/dashboard");
         
         toast({
-          title: isOfflineMode ? "Login realizado (Modo Offline)" : "Login realizado",
-          description: isOfflineMode 
-            ? "Você está operando em modo offline. Algumas funcionalidades podem estar limitadas." 
-            : "Bem-vindo ao sistema de administração.",
+          title: "Login realizado com sucesso",
+          description: "Bem-vindo ao sistema de administração.",
         });
       } else {
         toast({
@@ -162,8 +170,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error("Erro ao fazer login:", error);
       toast({
         variant: "destructive",
-        title: "Erro",
-        description: "Ocorreu um erro ao tentar fazer login. Por favor, tente novamente.",
+        title: "Erro de conexão",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao tentar fazer login. Verifique sua conexão com a internet e tente novamente.",
       });
     } finally {
       setIsLoading(false);

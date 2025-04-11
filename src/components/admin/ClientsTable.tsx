@@ -25,11 +25,11 @@ export const ClientsTable = ({ clients, onEdit, onPrint, onDelete }: ClientsTabl
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 overflow-x-auto">
       {isOfflineMode && (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
-          <p>Funcionando em modo offline. Dados serão sincronizados quando a conexão for restabelecida.</p>
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
+          <p>Erro de conexão com o banco de dados. O sistema precisa estar online para funcionar corretamente.</p>
           <button 
             onClick={retryConnection}
-            className="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600 transition-colors"
+            className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors"
           >
             Tentar reconectar
           </button>
@@ -40,8 +40,8 @@ export const ClientsTable = ({ clients, onEdit, onPrint, onDelete }: ClientsTabl
         <div className="text-center py-8">
           <p className="text-gray-500 mb-4">Nenhum cliente cadastrado</p>
           {isOfflineMode && (
-            <p className="text-sm text-gray-400">
-              Você está em modo offline. Novos clientes cadastrados aparecerão aqui quando a conexão for restabelecida.
+            <p className="text-sm text-red-500">
+              Não é possível carregar ou cadastrar clientes sem conexão com o banco de dados.
             </p>
           )}
         </div>
@@ -74,6 +74,7 @@ export const ClientsTable = ({ clients, onEdit, onPrint, onDelete }: ClientsTabl
                       variant="outline"
                       size="sm"
                       onClick={() => onEdit(client)}
+                      disabled={isOfflineMode}
                     >
                       Editar
                     </Button>
@@ -89,6 +90,7 @@ export const ClientsTable = ({ clients, onEdit, onPrint, onDelete }: ClientsTabl
                         variant="destructive"
                         size="sm"
                         onClick={() => onDelete(client)}
+                        disabled={isOfflineMode}
                       >
                         Excluir
                       </Button>

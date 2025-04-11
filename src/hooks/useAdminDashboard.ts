@@ -5,6 +5,7 @@ import { Plan } from "@/types/plan";
 import { useToast } from "@/components/ui/use-toast";
 import { syncStorage } from "@/utils/syncStorage";
 import { planManagerUtils } from "@/components/admin/managerUtils";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function useAdminDashboard() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -13,11 +14,16 @@ export function useAdminDashboard() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { isOfflineMode } = useAuth();
 
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
+        // Verifica a conexão primeiro
+        await syncStorage.checkConnection();
+        
+        // Carrega os dados
         await loadClients();
         await loadPlans();
       } catch (error) {
@@ -25,7 +31,7 @@ export function useAdminDashboard() {
         toast({
           variant: "destructive",
           title: "Erro ao carregar dados",
-          description: "Ocorreu um erro ao carregar os dados. Por favor, tente novamente.",
+          description: error instanceof Error ? error.message : "Não foi possível carregar os dados. Verifique sua conexão com a internet.",
         });
       } finally {
         setIsLoading(false);
@@ -57,6 +63,15 @@ export function useAdminDashboard() {
   };
 
   const handleEdit = (client: Client) => {
+    if (isOfflineMode) {
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não é possível editar clientes sem conexão com o banco de dados."
+      });
+      return;
+    }
+    
     setEditingClient(client);
     setUpdatedClient(client);
   };
@@ -67,55 +82,123 @@ export function useAdminDashboard() {
     });
   };
 
-  const handleDelete = (client: Client) => {
-    if (window.confirm(`Tem certeza que deseja excluir o cliente ${client.name}?`)) {
-      const updatedClients = clients.filter((c) => c.id !== client.id);
-      syncStorage.setItem("clients", updatedClients);
-      setClients(updatedClients);
+  const handleDelete = async (client: Client) => {
+    if (isOfflineMode) {
       toast({
-        title: "Cliente excluído",
-        description: "O cliente foi removido com sucesso.",
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não é possível excluir clientes sem conexão com o banco de dados."
+      });
+      return;
+    }
+    
+    if (window.confirm(`Tem certeza que deseja excluir o cliente ${client.name}?`)) {
+      try {
+        await syncStorage.checkConnection();
+        
+        const updatedClients = clients.filter((c) => c.id !== client.id);
+        await syncStorage.setItem("clients", updatedClients);
+        setClients(updatedClients);
+        
+        toast({
+          title: "Cliente excluído",
+          description: "O cliente foi removido com sucesso.",
+        });
+      } catch (error) {
+        console.error("Erro ao excluir cliente:", error);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: error instanceof Error ? error.message : "Não foi possível excluir o cliente. Verifique sua conexão com a internet.",
+        });
+      }
+    }
+  };
+
+  const handleSaveEdit = async (client: Client) => {
+    try {
+      await syncStorage.checkConnection();
+      
+      const updatedClients = clients.map((c) => 
+        c.id === client.id ? client : c
+      );
+      
+      await syncStorage.setItem("clients", updatedClients);
+      setClients(updatedClients);
+      setEditingClient(null);
+      setUpdatedClient(null);
+      
+      toast({
+        title: "Cliente atualizado",
+        description: "As informações do cliente foram atualizadas com sucesso.",
+      });
+    } catch (error) {
+      console.error("Erro ao atualizar cliente:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Não foi possível atualizar o cliente. Verifique sua conexão com a internet.",
       });
     }
   };
 
-  const handleSaveEdit = (client: Client) => {
-    const updatedClients = clients.map((c) => 
-      c.id === client.id ? client : c
-    );
-    syncStorage.setItem("clients", updatedClients);
-    setClients(updatedClients);
-    setEditingClient(null);
-    setUpdatedClient(null);
-    toast({
-      title: "Cliente atualizado",
-      description: "As informações do cliente foram atualizadas com sucesso.",
-    });
-  };
-
-  const handleAddPlan = (plan: Omit<Plan, "id">) => {
-    const newPlan: Plan = {
-      id: Date.now(),
-      ...plan,
-    };
-    const updatedPlans = [...plans, newPlan];
-    planManagerUtils.savePlans(updatedPlans);
-    setPlans(updatedPlans);
-    toast({
-      title: "Plano adicionado",
-      description: "O plano foi adicionado com sucesso.",
-    });
-  };
-
-  const handleDeletePlan = (id: number) => {
-    if (window.confirm("Tem certeza que deseja excluir este plano?")) {
-      const updatedPlans = plans.filter((p) => p.id !== id);
-      planManagerUtils.savePlans(updatedPlans);
+  const handleAddPlan = async (plan: Omit<Plan, "id">) => {
+    try {
+      await syncStorage.checkConnection();
+      
+      const newPlan: Plan = {
+        id: Date.now(),
+        ...plan,
+      };
+      
+      const updatedPlans = [...plans, newPlan];
+      await planManagerUtils.savePlans(updatedPlans);
       setPlans(updatedPlans);
+      
       toast({
-        title: "Plano excluído",
-        description: "O plano foi removido com sucesso.",
+        title: "Plano adicionado",
+        description: "O plano foi adicionado com sucesso.",
       });
+    } catch (error) {
+      console.error("Erro ao adicionar plano:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Não foi possível adicionar o plano. Verifique sua conexão com a internet.",
+      });
+    }
+  };
+
+  const handleDeletePlan = async (id: number) => {
+    if (isOfflineMode) {
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não é possível excluir planos sem conexão com o banco de dados."
+      });
+      return;
+    }
+    
+    if (window.confirm("Tem certeza que deseja excluir este plano?")) {
+      try {
+        await syncStorage.checkConnection();
+        
+        const updatedPlans = plans.filter((p) => p.id !== id);
+        await planManagerUtils.savePlans(updatedPlans);
+        setPlans(updatedPlans);
+        
+        toast({
+          title: "Plano excluído",
+          description: "O plano foi removido com sucesso.",
+        });
+      } catch (error) {
+        console.error("Erro ao excluir plano:", error);
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: error instanceof Error ? error.message : "Não foi possível excluir o plano. Verifique sua conexão com a internet.",
+        });
+      }
     }
   };
 

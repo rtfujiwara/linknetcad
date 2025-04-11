@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { User, Permission } from "@/types/user";
 import { useToast } from "@/components/ui/use-toast";
@@ -7,7 +8,7 @@ import { syncStorage } from "@/utils/syncStorage";
 
 export const useUserManager = () => {
   const { toast } = useToast();
-  const { currentUser } = useAuth();
+  const { currentUser, isOfflineMode } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isChangePasswordDialogOpen, setIsChangePasswordDialogOpen] = useState(false);
@@ -19,22 +20,18 @@ export const useUserManager = () => {
     const loadUsers = async () => {
       setIsLoading(true);
       try {
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error("Timeout ao carregar usuários")), 10000);
-        });
+        // Verifica a conexão primeiro
+        await syncStorage.checkConnection();
         
-        const usersPromise = userManagerUtils.getUsers();
-        
-        const fetchedUsers = await Promise.race([usersPromise, timeoutPromise]);
+        // Carrega os usuários
+        const fetchedUsers = await userManagerUtils.getUsers();
         setUsers(fetchedUsers);
       } catch (error) {
         console.error("Erro ao carregar usuários:", error);
-        const localUsers = userManagerUtils.getUsersSync();
-        setUsers(localUsers);
         toast({
           variant: "destructive",
           title: "Erro de conexão",
-          description: "Não foi possível carregar todos os usuários. Funcionando com dados locais.",
+          description: error instanceof Error ? error.message : "Não foi possível carregar a lista de usuários. Verifique sua conexão com a internet.",
         });
       } finally {
         setIsLoading(false);
@@ -52,32 +49,82 @@ export const useUserManager = () => {
     return () => unsubscribe();
   }, [toast]);
 
-  const handleAddUser = (user: User) => {
-    setUsers((prev) => [...prev, user]);
+  const handleAddUser = async (user: User) => {
+    try {
+      // Verifica a conexão
+      await syncStorage.checkConnection();
+      
+      // Adiciona o usuário
+      const updatedUsers = [...users, user];
+      await userManagerUtils.saveUsers(updatedUsers);
+      setUsers(updatedUsers);
+      
+      toast({
+        title: "Usuário adicionado",
+        description: "O usuário foi adicionado com sucesso.",
+      });
+    } catch (error) {
+      console.error("Erro ao adicionar usuário:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Não foi possível adicionar o usuário. Verifique sua conexão com a internet.",
+      });
+    }
   };
 
   const openChangePasswordDialog = (user: User) => {
+    if (isOfflineMode) {
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não é possível alterar senhas sem conexão com o banco de dados.",
+      });
+      return;
+    }
+    
     setSelectedUser(user);
     setIsChangePasswordDialogOpen(true);
   };
 
   const openEditPermissionsDialog = (user: User) => {
+    if (isOfflineMode) {
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não é possível editar permissões sem conexão com o banco de dados.",
+      });
+      return;
+    }
+    
     setSelectedUser(user);
     setIsEditPermissionsDialogOpen(true);
   };
 
   const openDeleteUserDialog = (user: User) => {
+    if (isOfflineMode) {
+      toast({
+        variant: "destructive",
+        title: "Erro de conexão",
+        description: "Não é possível excluir usuários sem conexão com o banco de dados.",
+      });
+      return;
+    }
+    
     setSelectedUser(user);
     setIsDeleteUserDialogOpen(true);
   };
 
   const handleChangePassword = async (userId: number, newPassword: string) => {
     try {
+      // Verifica a conexão
+      await syncStorage.checkConnection();
+      
       const updatedUsers = users.map((user) =>
         user.id === userId ? { ...user, password: newPassword } : user
       );
       
-      userManagerUtils.saveUsers(updatedUsers);
+      await userManagerUtils.saveUsers(updatedUsers);
       setUsers(updatedUsers);
       setIsChangePasswordDialogOpen(false);
       
@@ -90,18 +137,21 @@ export const useUserManager = () => {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Ocorreu um erro ao alterar a senha",
+        description: error instanceof Error ? error.message : "Não foi possível alterar a senha. Verifique sua conexão com a internet.",
       });
     }
   };
 
   const handleEditPermissions = async (userId: number, permissions: Permission[]) => {
     try {
+      // Verifica a conexão
+      await syncStorage.checkConnection();
+      
       const updatedUsers = users.map((user) =>
         user.id === userId ? { ...user, permissions } : user
       );
       
-      userManagerUtils.saveUsers(updatedUsers);
+      await userManagerUtils.saveUsers(updatedUsers);
       setUsers(updatedUsers);
       setIsEditPermissionsDialogOpen(false);
       
@@ -114,13 +164,16 @@ export const useUserManager = () => {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Ocorreu um erro ao atualizar as permissões",
+        description: error instanceof Error ? error.message : "Não foi possível atualizar as permissões. Verifique sua conexão com a internet.",
       });
     }
   };
 
   const handleDeleteUser = async (userId: number) => {
     try {
+      // Verifica a conexão
+      await syncStorage.checkConnection();
+      
       if (userId === currentUser?.id) {
         toast({
           variant: "destructive",
@@ -131,7 +184,7 @@ export const useUserManager = () => {
       }
       
       const updatedUsers = users.filter((user) => user.id !== userId);
-      userManagerUtils.saveUsers(updatedUsers);
+      await userManagerUtils.saveUsers(updatedUsers);
       setUsers(updatedUsers);
       setIsDeleteUserDialogOpen(false);
       
@@ -144,7 +197,7 @@ export const useUserManager = () => {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Ocorreu um erro ao excluir o usuário",
+        description: error instanceof Error ? error.message : "Não foi possível excluir o usuário. Verifique sua conexão com a internet.",
       });
     }
   };
