@@ -19,8 +19,15 @@ const firebaseConfig = {
 };
 
 // Inicializar Firebase
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
+let app;
+let database;
+
+try {
+  app = initializeApp(firebaseConfig);
+  database = getDatabase(app);
+} catch (error) {
+  console.error("Erro ao inicializar Firebase:", error);
+}
 
 export const syncStorage = {
   // Dados em memória que podem ser acessados durante a sessão atual
@@ -40,9 +47,13 @@ export const syncStorage = {
       // Armazena também em memória para acesso rápido
       syncStorage.memoryStorage.set(key, value);
       
-      // Armazena no Firebase Realtime Database
-      const dbRef = ref(database, key);
-      set(dbRef, event);
+      // Armazena no Firebase Realtime Database se disponível
+      if (database) {
+        const dbRef = ref(database, key);
+        set(dbRef, event).catch(error => {
+          console.error(`Erro ao sincronizar ${key} com Firebase:`, error);
+        });
+      }
       
       // Notifica sobre a mudança (útil para sincronizar componentes)
       window.dispatchEvent(new CustomEvent('storage-change', { detail: { key, value } }));
@@ -63,7 +74,26 @@ export const syncStorage = {
           return;
         }
         
-        // Se não estiver em memória, obtém do Firebase
+        // Verifica se Firebase está disponível
+        if (!database) {
+          console.warn("Firebase não disponível, usando localStorage");
+          const stored = localStorage.getItem(key);
+          if (stored) {
+            try {
+              const event = JSON.parse(stored);
+              syncStorage.memoryStorage.set(key, event.data);
+              resolve(event.data);
+            } catch (e) {
+              console.error("Erro ao interpretar dados do localStorage:", e);
+              resolve(defaultValue);
+            }
+          } else {
+            resolve(defaultValue);
+          }
+          return;
+        }
+        
+        // Se Firebase disponível, obtém de lá
         const dbRef = ref(database, key);
         get(dbRef).then((snapshot) => {
           if (snapshot.exists()) {
@@ -86,7 +116,11 @@ export const syncStorage = {
               // Armazena na memória para acesso rápido futuro
               syncStorage.memoryStorage.set(key, event.data);
               // Sincroniza com o Firebase
-              set(dbRef, event);
+              if (database) {
+                set(dbRef, event).catch(error => {
+                  console.error(`Erro ao sincronizar ${key} com Firebase:`, error);
+                });
+              }
               resolve(event.data);
             } catch (e) {
               console.error("Erro ao interpretar dados armazenados:", e);
@@ -95,7 +129,21 @@ export const syncStorage = {
           }
         }).catch((error) => {
           console.error("Erro ao obter dados do Firebase:", error);
-          resolve(defaultValue);
+          
+          // Tenta do localStorage como fallback
+          const stored = localStorage.getItem(key);
+          if (stored) {
+            try {
+              const event = JSON.parse(stored);
+              syncStorage.memoryStorage.set(key, event.data);
+              resolve(event.data);
+            } catch (e) {
+              console.error("Erro ao interpretar dados do localStorage:", e);
+              resolve(defaultValue);
+            }
+          } else {
+            resolve(defaultValue);
+          }
         });
       } catch (error) {
         console.error("Erro ao recuperar dados armazenados:", error);
@@ -134,9 +182,13 @@ export const syncStorage = {
       localStorage.removeItem(key);
       syncStorage.memoryStorage.delete(key);
       
-      // Remove do Firebase
-      const dbRef = ref(database, key);
-      remove(dbRef);
+      // Remove do Firebase se disponível
+      if (database) {
+        const dbRef = ref(database, key);
+        remove(dbRef).catch(error => {
+          console.error(`Erro ao remover ${key} do Firebase:`, error);
+        });
+      }
       
       // Notifica sobre a remoção
       window.dispatchEvent(new CustomEvent('storage-change', { detail: { key, value: null } }));
@@ -151,7 +203,6 @@ export const syncStorage = {
       localStorage.clear();
       syncStorage.memoryStorage.clear();
       
-      // Limpa dados no Firebase (não implementado para evitar limpar tudo acidentalmente)
       // Notifica sobre a limpeza
       window.dispatchEvent(new CustomEvent('storage-change', { detail: { key: null, value: null } }));
     } catch (error) {
@@ -167,24 +218,29 @@ export const syncStorage = {
     
     window.addEventListener('storage-change', handler as EventListener);
     
-    // Também ouvir mudanças do Firebase
+    // Também ouvir mudanças do Firebase se disponível
     const unsubscribeCallbacks: (() => void)[] = [];
     
-    // Ouvir mudanças nos dados comuns
-    ["users", "clients", "plans"].forEach(key => {
-      const dbRef = ref(database, key);
-      const unsubscribe = onValue(dbRef, (snapshot) => {
-        if (snapshot.exists()) {
-          const event = snapshot.val();
-          // Atualiza a memória e o localStorage
-          syncStorage.memoryStorage.set(key, event.data);
-          localStorage.setItem(key, JSON.stringify(event));
-          // Notifica a mudança
-          callback(key, event.data);
-        }
+    if (database) {
+      // Ouvir mudanças nos dados comuns
+      ["users", "clients", "plans"].forEach(key => {
+        const dbRef = ref(database, key);
+        const unsubscribe = onValue(dbRef, (snapshot) => {
+          if (snapshot.exists()) {
+            const event = snapshot.val();
+            // Atualiza a memória e o localStorage
+            syncStorage.memoryStorage.set(key, event.data);
+            localStorage.setItem(key, JSON.stringify(event));
+            // Notifica a mudança
+            callback(key, event.data);
+          }
+        }, (error) => {
+          console.error(`Erro ao ouvir mudanças em ${key}:`, error);
+        });
+        
+        unsubscribeCallbacks.push(unsubscribe);
       });
-      unsubscribeCallbacks.push(unsubscribe);
-    });
+    }
     
     // Retorna uma função que remove todos os listeners
     return () => {

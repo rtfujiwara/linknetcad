@@ -13,21 +13,36 @@ const AdminLogin = () => {
   const [credentials, setCredentials] = useState({ username: "", password: "" });
   const [showCreateAdmin, setShowCreateAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
   const { login } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     const checkUsers = async () => {
       setIsLoading(true);
+      setIsError(false);
+      
       try {
-        const users = await syncStorage.getItem("users", []);
-        setShowCreateAdmin(users.length === 0);
+        // Adiciona um timeout para não ficar travado infinitamente
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error("Timeout ao verificar usuários")), 10000);
+        });
+        
+        const usersPromise = syncStorage.getItem("users", []);
+        
+        // Utiliza Promise.race para garantir que não ficará carregando para sempre
+        const users = await Promise.race([usersPromise, timeoutPromise]);
+        setShowCreateAdmin(!users || users.length === 0);
+        
       } catch (error) {
         console.error("Erro ao verificar usuários:", error);
+        // Se houver timeout ou erro, assume que não há usuários e permite criar admin
+        setShowCreateAdmin(true);
+        setIsError(true);
         toast({
           variant: "destructive",
-          title: "Erro",
-          description: "Ocorreu um erro ao verificar os usuários existentes.",
+          title: "Erro de conexão",
+          description: "Não foi possível verificar os usuários existentes. Funcionando em modo offline.",
         });
       } finally {
         setIsLoading(false);
@@ -126,6 +141,11 @@ const AdminLogin = () => {
             <h1 className="text-2xl font-semibold text-center mb-6 text-blue-900">
               {showCreateAdmin ? "Criar Primeiro Administrador" : "Acesso Administrativo"}
             </h1>
+            {isError && (
+              <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+                <p>Funcionando em modo offline. Dados serão sincronizados quando a conexão for restabelecida.</p>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="username" className="text-blue-900">Usuário</Label>

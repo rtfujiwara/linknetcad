@@ -1,108 +1,104 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+
+import React, { createContext, useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { syncStorage } from "@/utils/syncStorage";
-import { User, Permission } from "@/types/user";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
+import { User } from "@/types/user";
 
-interface AuthContextType {
+interface AuthContextData {
   currentUser: User | null;
-  login: (username: string, password: string) => Promise<boolean>;
+  isAuthenticated: boolean;
+  login: (username: string, password: string) => void;
   logout: () => void;
-  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
-  hasPermission: (permission: Permission) => boolean;
-  isAdmin: () => boolean;
+  hasPermission: (permission: string) => boolean;
 }
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType);
+const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
-export const useAuth = () => useContext(AuthContext);
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider = ({ children }: AuthProviderProps) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
-    const initAuth = async () => {
+    const checkAuth = async () => {
       try {
-        // Verificar se há um usuário logado
         const storedUser = localStorage.getItem("currentUser");
         if (storedUser) {
-          const user = JSON.parse(storedUser);
-          setCurrentUser(user);
+          setCurrentUser(JSON.parse(storedUser));
         }
       } catch (error) {
-        console.error("Erro ao inicializar autenticação:", error);
+        console.error("Erro ao verificar autenticação:", error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    initAuth();
-
-    // Adicionar listener para mudanças nos usuários
+    checkAuth();
+    
+    // Listener para mudanças nos usuários
     const unsubscribe = syncStorage.addChangeListener((key, value) => {
-      // Se a lista de usuários mudar e o usuário atual estiver logado
       if (key === "users" && currentUser) {
-        // Verifica se o usuário atual ainda existe na lista
-        const updatedUserList = value as User[];
-        const userStillExists = updatedUserList.some(user => user.id === currentUser.id);
-        
-        if (!userStillExists) {
-          // Se o usuário foi removido, faz logout
+        // Verifica se o usuário atual ainda existe após as mudanças
+        const userExists = value?.some((user: User) => user.id === currentUser.id);
+        if (!userExists) {
+          // Se o usuário não existe mais, faz logout
           logout();
           toast({
             title: "Sessão encerrada",
-            description: "Sua conta foi removida por um administrador.",
+            description: "Seu usuário foi removido por um administrador.",
           });
-        } else {
-          // Atualiza as informações do usuário atual
-          const updatedUser = updatedUserList.find(user => user.id === currentUser.id);
-          if (updatedUser) {
-            setCurrentUser(updatedUser);
-            localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-          }
         }
       }
     });
 
     return () => {
-      if (unsubscribe) unsubscribe();
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
     };
-  }, [navigate, currentUser]);
+  }, [currentUser, navigate, toast]);
 
   const login = async (username: string, password: string) => {
     try {
-      const users = await syncStorage.getItem<User[]>("users", []);
-      const user = users.find(
-        (u) => u.username === username && u.password === password
-      );
-
+      // Adiciona um timeout para não ficar preso infinitamente
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Timeout ao tentar login")), 10000);
+      });
+      
+      const usersPromise = syncStorage.getItem<User[]>("users", []);
+      
+      // Utiliza Promise.race para garantir que não ficará carregando para sempre
+      let users;
+      try {
+        users = await Promise.race([usersPromise, timeoutPromise]);
+      } catch (error) {
+        console.error("Erro ao obter usuários:", error);
+        // Em caso de erro, tenta obter do localStorage
+        users = syncStorage.getItemSync<User[]>("users", []);
+      }
+      
+      const user = users.find(u => u.username === username && u.password === password);
+      
       if (user) {
         setCurrentUser(user);
         localStorage.setItem("currentUser", JSON.stringify(user));
         navigate("/admin/dashboard");
-        return true;
       } else {
         toast({
           variant: "destructive",
-          title: "Erro no login",
-          description: "Usuário ou senha incorretos",
+          title: "Erro de autenticação",
+          description: "Usuário ou senha incorretos.",
         });
-        return false;
       }
     } catch (error) {
-      console.error("Erro no login:", error);
+      console.error("Erro ao fazer login:", error);
       toast({
         variant: "destructive",
-        title: "Erro no login",
+        title: "Erro",
         description: "Ocorreu um erro ao tentar fazer login. Por favor, tente novamente.",
       });
-      return false;
     }
   };
 
@@ -112,68 +108,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     navigate("/admin");
   };
 
-  const changePassword = async (currentPassword: string, newPassword: string) => {
-    if (!currentUser) return false;
-
-    try {
-      if (currentUser.password !== currentPassword) {
-        toast({
-          variant: "destructive",
-          title: "Senha atual incorreta",
-          description: "A senha atual informada está incorreta.",
-        });
-        return false;
-      }
-
-      const users = await syncStorage.getItem<User[]>("users", []);
-      const updatedUsers = users.map((user) =>
-        user.id === currentUser.id ? { ...user, password: newPassword } : user
-      );
-
-      await syncStorage.setItem("users", updatedUsers);
-
-      const updatedUser = { ...currentUser, password: newPassword };
-      setCurrentUser(updatedUser);
-      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-
-      toast({
-        title: "Senha alterada",
-        description: "Sua senha foi alterada com sucesso.",
-      });
-      return true;
-    } catch (error) {
-      console.error("Erro ao alterar senha:", error);
-      toast({
-        variant: "destructive",
-        title: "Erro ao alterar senha",
-        description: "Ocorreu um erro ao alterar a senha. Por favor, tente novamente.",
-      });
-      return false;
-    }
-  };
-
-  const hasPermission = (permission: Permission): boolean => {
+  const hasPermission = (permission: string): boolean => {
     if (!currentUser) return false;
     if (currentUser.isAdmin) return true;
     return currentUser.permissions.includes(permission);
   };
 
-  const isAdmin = (): boolean => {
-    return !!currentUser?.isAdmin;
-  };
+  if (isLoading) {
+    return <div>Carregando...</div>;
+  }
 
   return (
     <AuthContext.Provider
-      value={{ 
-        currentUser, 
-        login, 
-        logout, 
-        changePassword, 
-        hasPermission, 
-        isAdmin 
+      value={{
+        currentUser,
+        isAuthenticated: !!currentUser,
+        login,
+        logout,
+        hasPermission,
       }}
     >
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
+
+export const useAuth = () => useContext(AuthContext);

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,22 +55,38 @@ const Index = () => {
   });
   const [plans, setPlans] = useState<{ id: number; name: string; price: number; description: string; }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
     const loadPlans = async () => {
       setIsLoading(true);
+      setIsError(false);
+      
       try {
-        const savedPlans = await syncStorage.getItem<{ id: number; name: string; price: number; description: string; }[]>("plans", []);
-        setPlans(savedPlans);
+        // Adiciona um timeout para não ficar travado infinitamente
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error("Timeout ao carregar planos")), 10000);
+        });
+        
+        const plansPromise = syncStorage.getItem<{ id: number; name: string; price: number; description: string; }[]>("plans", []);
+        
+        // Utiliza Promise.race para garantir que não ficará carregando para sempre
+        const savedPlans = await Promise.race([plansPromise, timeoutPromise]);
+        setPlans(savedPlans || []);
+        
       } catch (error) {
         console.error("Erro ao carregar planos:", error);
+        setIsError(true);
         toast({
           variant: "destructive",
-          title: "Erro ao carregar planos",
-          description: "Ocorreu um erro ao carregar os planos disponíveis. Por favor, tente novamente.",
+          title: "Erro de conexão",
+          description: "Não foi possível carregar os planos. Funcionando em modo offline.",
         });
+        // Em caso de erro, tenta carregar do armazenamento local
+        const localPlans = syncStorage.getItemSync<{ id: number; name: string; price: number; description: string; }[]>("plans", []);
+        setPlans(localPlans);
       } finally {
         setIsLoading(false);
       }
@@ -151,8 +168,6 @@ const Index = () => {
     setFormData({ ...formData, dueDate: value });
   };
 
-  const requiredField = "Campo obrigatório";
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -205,6 +220,10 @@ const Index = () => {
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-4" />
               <p className="text-gray-600">Carregando planos disponíveis...</p>
+            </div>
+          ) : isError ? (
+            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+              <p>Funcionando em modo offline. Dados serão sincronizados quando a conexão for restabelecida.</p>
             </div>
           ) : plans.length === 0 ? (
             <div className="text-center py-8">
