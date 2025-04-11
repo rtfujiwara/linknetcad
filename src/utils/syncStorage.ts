@@ -82,7 +82,7 @@ export const syncStorage = {
   },
   
   // Adiciona um listener para mudanças no armazenamento
-  addChangeListener: (callback: (key: string, value: any) => void): void => {
+  addChangeListener: (callback: (key: string, value: any) => void): (() => void) => {
     const handler = (event: CustomEvent) => {
       callback(event.detail.key, event.detail.value);
     };
