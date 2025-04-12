@@ -2,9 +2,9 @@
 /**
  * Default data initialization module
  */
-import { syncStorage } from "../syncStorage";
 import { User } from "@/types/user";
 import { Plan } from "@/types/plan";
+import { setItem, getItem, checkConnection } from "./syncManager";
 
 /**
  * Create default admin user
@@ -52,23 +52,23 @@ export const createDefaultPlans = (): Plan[] => {
 export const initializeDefaultData = async (): Promise<void> => {
   try {
     // Check connection
-    await syncStorage.checkConnection();
+    await checkConnection();
     
     // Check if users exist
-    const users = await syncStorage.getItem<User[]>("users", []);
+    const users = await getItem<User[]>("users", []);
     if (!users || users.length === 0) {
       // Create default admin user
       const adminUser = createDefaultAdminUser();
-      await syncStorage.setItem("users", [adminUser]);
+      await setItem("users", [adminUser]);
       console.log("Usuário admin padrão criado com sucesso");
     }
     
     // Check if plans exist
-    const plans = await syncStorage.getItem<Plan[]>("plans", []);
+    const plans = await getItem<Plan[]>("plans", []);
     if (!plans || plans.length === 0) {
       // Create default plans
       const defaultPlans = createDefaultPlans();
-      await syncStorage.setItem("plans", defaultPlans);
+      await setItem("plans", defaultPlans);
       console.log("Planos padrão criados com sucesso");
     }
   } catch (error) {
