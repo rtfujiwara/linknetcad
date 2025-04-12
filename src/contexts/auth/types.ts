@@ -10,5 +10,5 @@ export interface AuthContextData {
   hasPermission: (permission: Permission) => boolean;
   isOfflineMode: boolean;
   retryConnection: () => Promise<boolean>;
-  isLoading?: boolean;
+  isLoading: boolean;
 }

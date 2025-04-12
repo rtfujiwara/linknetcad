@@ -5,6 +5,8 @@ import { User, Permission } from "@/types/user";
 import { syncStorage } from "@/utils/syncStorage";
 import { AuthLoading } from "@/components/auth/AuthLoading";
 import { userManagerUtils } from "@/components/admin/managerUtils";
+import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 // Cria o contexto de autenticação
 const AuthContext = createContext<AuthContextData | undefined>(undefined);
@@ -27,6 +29,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Verifica a autenticação ao carregar o componente
   useEffect(() => {
@@ -37,32 +41,98 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         await syncStorage.checkConnection();
         setIsOfflineMode(false);
 
-        // Recupera o usuário atual da sessão
-        const storedUser = sessionStorage.getItem("currentUser");
+        // Inicializa dados padrão se necessário
+        await syncStorage.initializeDefaultData();
+
+        // Recupera o usuário atual do localStorage
+        const storedUser = localStorage.getItem("currentUser");
         if (storedUser) {
           setCurrentUser(JSON.parse(storedUser));
         }
       } catch (error) {
         console.error("Erro ao verificar autenticação:", error);
         setIsOfflineMode(true);
+        
+        // Mesmo em modo offline, tenta recuperar o usuário do localStorage
+        const storedUser = localStorage.getItem("currentUser");
+        if (storedUser) {
+          setCurrentUser(JSON.parse(storedUser));
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     checkAuth();
+    
+    // Listener para mudanças nos usuários
+    const unsubscribe = syncStorage.addChangeListener((key, value) => {
+      if (key === "users" && currentUser) {
+        // Verifica se o usuário atual ainda existe após as mudanças
+        const userExists = value?.some((user: User) => user.id === currentUser.id);
+        if (!userExists) {
+          // Se o usuário não existe mais, faz logout
+          logout();
+          toast({
+            title: "Sessão encerrada",
+            description: "Seu usuário foi removido por um administrador.",
+          });
+        }
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
   }, []);
 
   // Função para fazer login
   const login = async (username: string, password: string): Promise<void> => {
     setIsLoading(true);
     try {
-      // Verifica a conexão com o Firebase
-      await syncStorage.checkConnection();
-      setIsOfflineMode(false);
+      // Tenta verificar a conexão com o Firebase
+      try {
+        await syncStorage.checkConnection();
+        setIsOfflineMode(false);
+      } catch (error) {
+        console.warn("Funcionando em modo offline:", error);
+        setIsOfflineMode(true);
+      }
 
       // Obtém a lista de usuários
-      const users = await userManagerUtils.getUsers();
+      let users: User[] = [];
+      
+      try {
+        users = await userManagerUtils.getUsers();
+      } catch (error) {
+        console.error("Erro ao obter usuários do servidor:", error);
+        
+        // Em caso de erro, tenta usar os dados do localStorage
+        users = userManagerUtils.getUsersSync();
+        
+        if (users.length === 0 && username === "admin" && password === "admin") {
+          // Cria um usuário admin padrão se não houver usuários e as credenciais forem as padrão
+          const adminUser: User = {
+            id: 1,
+            username: "admin",
+            password: "admin",
+            name: "Administrador",
+            isAdmin: true,
+            permissions: ["view_clients", "edit_clients", "print_clients", "delete_data", "manage_plans", "manage_users"]
+          };
+          
+          users = [adminUser];
+          
+          // Tenta salvar o usuário admin no localStorage
+          try {
+            await syncStorage.setItem("users", users);
+          } catch (e) {
+            console.error("Erro ao salvar usuário admin:", e);
+          }
+        }
+      }
       
       // Procura por um usuário com o nome de usuário e senha fornecidos
       const user = users.find(
@@ -70,17 +140,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       );
 
       if (user) {
-        // Remove a senha do objeto do usuário por segurança
-        const { password: _, ...safeUser } = user;
-        setCurrentUser(safeUser as User);
+        setCurrentUser(user);
         
-        // Armazena o usuário na sessão
-        sessionStorage.setItem("currentUser", JSON.stringify(safeUser));
+        // Armazena o usuário no localStorage para persistência entre reloads
+        localStorage.setItem("currentUser", JSON.stringify(user));
+        
+        toast({
+          title: "Login realizado com sucesso",
+          description: "Bem-vindo ao sistema de administração.",
+        });
+        
+        navigate("/admin/dashboard");
       } else {
         throw new Error("Usuário ou senha inválidos");
       }
     } catch (error) {
       console.error("Erro ao fazer login:", error);
+      
+      toast({
+        variant: "destructive",
+        title: "Erro de autenticação",
+        description: error instanceof Error ? error.message : "Usuário ou senha incorretos.",
+      });
+      
       throw error;
     } finally {
       setIsLoading(false);
@@ -90,7 +172,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Função para fazer logout
   const logout = () => {
     setCurrentUser(null);
-    sessionStorage.removeItem("currentUser");
+    localStorage.removeItem("currentUser");
+    navigate("/admin");
+    
+    toast({
+      title: "Logout realizado",
+      description: "Você saiu do sistema com sucesso.",
+    });
   };
 
   // Função para verificar se o usuário tem uma permissão específica
@@ -102,22 +190,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     );
   };
 
-  // Função para verificar se o usuário é um administrador
-  const isAdmin = !!currentUser?.isAdmin;
-
   // Função para tentar reconectar-se ao Firebase
   const retryConnection = async (): Promise<boolean> => {
     setIsLoading(true);
     try {
       await syncStorage.checkConnection();
       setIsOfflineMode(false);
-      setIsLoading(false);
+      
+      toast({
+        title: "Conexão restabelecida",
+        description: "A conexão com o servidor foi restabelecida com sucesso.",
+      });
+      
       return true;
     } catch (error) {
       console.error("Erro ao tentar reconectar:", error);
       setIsOfflineMode(true);
-      setIsLoading(false);
+      
+      toast({
+        variant: "destructive",
+        title: "Falha na conexão",
+        description: "Não foi possível conectar ao servidor. Continuando em modo offline.",
+      });
+      
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -125,7 +223,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const authContextValue: AuthContextData = {
     currentUser,
     isAuthenticated: !!currentUser,
-    isAdmin,
+    isAdmin: !!currentUser?.isAdmin,
     login,
     logout,
     hasPermission,
