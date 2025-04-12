@@ -7,7 +7,11 @@ export const planManagerUtils = {
   getPlans: async (): Promise<Plan[]> => {
     try {
       // Verifica a conexão primeiro
-      await syncStorage.checkConnection();
+      const isConnected = await syncStorage.checkConnection();
+      if (!isConnected) {
+        console.warn("Conexão não disponível, usando dados locais");
+        return syncStorage.getItemSync<Plan[]>("plans", []);
+      }
       
       // Obtém os planos
       return await syncStorage.getItem<Plan[]>("plans", []);
@@ -23,10 +27,7 @@ export const planManagerUtils = {
   
   savePlans: async (plans: Plan[]): Promise<void> => {
     try {
-      // Verifica a conexão primeiro
-      await syncStorage.checkConnection();
-      
-      // Salva os planos
+      // Tenta salvar os planos, mesmo que offline (serão sincronizados depois)
       await syncStorage.setItem("plans", plans);
     } catch (error) {
       console.error("Erro ao salvar planos:", error);
@@ -39,7 +40,11 @@ export const userManagerUtils = {
   getUsers: async (): Promise<User[]> => {
     try {
       // Verifica a conexão primeiro
-      await syncStorage.checkConnection();
+      const isConnected = await syncStorage.checkConnection();
+      if (!isConnected) {
+        console.warn("Conexão não disponível, usando dados locais");
+        return syncStorage.getItemSync<User[]>("users", []);
+      }
       
       // Obtém os usuários
       return await syncStorage.getItem<User[]>("users", []);
@@ -55,10 +60,7 @@ export const userManagerUtils = {
   
   saveUsers: async (users: User[]): Promise<void> => {
     try {
-      // Verifica a conexão primeiro
-      await syncStorage.checkConnection();
-      
-      // Salva os usuários
+      // Tenta salvar os usuários, mesmo que offline (serão sincronizados depois)
       await syncStorage.setItem("users", users);
     } catch (error) {
       console.error("Erro ao salvar usuários:", error);

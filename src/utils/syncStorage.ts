@@ -1,4 +1,3 @@
-
 /**
  * Synchronization storage utility for Firebase Realtime Database
  */
@@ -43,7 +42,7 @@ export const syncStorage: StorageInterface = {
       }
     } catch (error) {
       console.error("Erro ao armazenar dados:", error);
-      throw new Error("Não foi possível salvar os dados. Verifique sua conexão com a internet e tente novamente.");
+      throw new Error("Não foi possível salvar os dados. Verifique sua conexão com a internet.");
     }
   },
 
@@ -185,28 +184,28 @@ export const syncStorage: StorageInterface = {
     };
   },
   
-  // Check connection and reject if not connected
+  // Check connection and return boolean status
   checkConnection: async (): Promise<boolean> => {
     try {
       const isConnected = await checkFirebaseConnection();
       if (!isConnected) {
-        throw new Error("Sem conexão com o banco de dados. Verifique sua internet e tente novamente.");
+        console.warn("Sem conexão com o banco de dados. Verificação retornou false.");
       }
-      return true;
+      return isConnected;
     } catch (error) {
       console.error("Erro ao verificar conexão:", error);
-      throw error;
+      return false; // Return false on error instead of throwing
     }
   },
   
   // Initialize default data
-  initializeDefaultData: async () => {
+  initializeDefaultData: async (): Promise<boolean> => {
     try {
       await initializeDefaultData();
       return true;
     } catch (error) {
       console.error("Erro ao inicializar dados padrão:", error);
-      throw error;
+      return false; // Return false on error instead of throwing
     }
   }
 };

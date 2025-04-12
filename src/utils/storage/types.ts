@@ -15,6 +15,6 @@ export interface StorageInterface {
   removeItem: (key: string) => Promise<void>;
   clear: () => Promise<void>;
   addChangeListener: (callback: (key: string, value: any) => void) => (() => void);
-  checkConnection: () => Promise<boolean>;
-  initializeDefaultData: () => Promise<void>;
+  checkConnection: () => Promise<boolean>; // Changed from Promise<void> to Promise<boolean>
+  initializeDefaultData: () => Promise<boolean>; // Changed from Promise<void> to Promise<boolean>
 }
