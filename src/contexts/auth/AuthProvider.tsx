@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { AuthContextData } from "./types";
-import { User } from "@/types/user";
+import { User, Permission } from "@/types/user";
 import { syncStorage } from "@/utils/syncStorage";
 import { AuthLoading } from "@/components/auth/AuthLoading";
 import { userManagerUtils } from "@/components/admin/managerUtils";
@@ -94,7 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Função para verificar se o usuário tem uma permissão específica
-  const hasPermission = (permission: string): boolean => {
+  const hasPermission = (permission: Permission): boolean => {
     if (!currentUser) return false;
     return (
       currentUser.isAdmin ||

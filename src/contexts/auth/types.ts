@@ -7,7 +7,7 @@ export interface AuthContextData {
   isAdmin: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
-  hasPermission: (permission: string) => boolean;
+  hasPermission: (permission: Permission) => boolean;
   isOfflineMode: boolean;
   retryConnection: () => Promise<boolean>;
   isLoading?: boolean;
