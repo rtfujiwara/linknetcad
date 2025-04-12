@@ -37,17 +37,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const checkAuth = async () => {
       setIsLoading(true);
       try {
-        // Verifica a conexão com o Firebase
-        await syncStorage.checkConnection();
-        setIsOfflineMode(false);
+        // Tenta verificar a conexão com o Firebase
+        try {
+          await syncStorage.checkConnection();
+          setIsOfflineMode(false);
+          console.log("Conexão com o Firebase estabelecida com sucesso");
+        } catch (error) {
+          console.warn("Funcionando em modo offline:", error);
+          setIsOfflineMode(true);
+        }
 
         // Inicializa dados padrão se necessário
-        await syncStorage.initializeDefaultData();
+        try {
+          await syncStorage.initializeDefaultData();
+          console.log("Dados inicializados com sucesso");
+        } catch (error) {
+          console.warn("Erro ao inicializar dados:", error);
+        }
 
         // Recupera o usuário atual do localStorage
         const storedUser = localStorage.getItem("currentUser");
         if (storedUser) {
           setCurrentUser(JSON.parse(storedUser));
+          console.log("Usuário recuperado do localStorage com sucesso");
         }
       } catch (error) {
         console.error("Erro ao verificar autenticação:", error);
@@ -106,11 +118,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       try {
         users = await userManagerUtils.getUsers();
+        console.log("Usuários carregados do servidor com sucesso");
       } catch (error) {
         console.error("Erro ao obter usuários do servidor:", error);
         
         // Em caso de erro, tenta usar os dados do localStorage
         users = userManagerUtils.getUsersSync();
+        console.log("Usuários carregados do localStorage");
         
         if (users.length === 0 && username === "admin" && password === "admin") {
           // Cria um usuário admin padrão se não houver usuários e as credenciais forem as padrão
@@ -128,6 +142,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Tenta salvar o usuário admin no localStorage
           try {
             await syncStorage.setItem("users", users);
+            console.log("Usuário admin salvo com sucesso");
           } catch (e) {
             console.error("Erro ao salvar usuário admin:", e);
           }
@@ -232,6 +247,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading,
   };
 
+  // Se estiver carregando, mostra o componente de carregamento
   if (isLoading) {
     return <AuthLoading />;
   }

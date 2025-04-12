@@ -17,23 +17,30 @@ export const syncStorage: StorageInterface = {
         data: value,
       };
       
-      // Check connection before trying to sync
-      const database = getFirebaseDatabase();
-      
-      if (!database) {
-        throw new Error("Não foi possível conectar ao banco de dados.");
-      }
-      
-      // Store in Firebase Realtime Database
-      const dbRef = ref(database, key);
-      await set(dbRef, event);
-      console.log(`Dados sincronizados com Firebase: ${key}`);
-      
-      // Store in localStorage as temporary cache
+      // Always save to localStorage first for reliability
       saveToLocalStorage(key, value);
       
-      // Notify about the change (useful for syncing components)
-      window.dispatchEvent(new CustomEvent('storage-change', { detail: { key, value } }));
+      // Try to sync with Firebase if possible
+      try {
+        // Check connection before trying to sync
+        const database = getFirebaseDatabase();
+        
+        if (!database) {
+          console.warn("Firebase database indisponível, salvando apenas localmente");
+          return;
+        }
+        
+        // Store in Firebase Realtime Database
+        const dbRef = ref(database, key);
+        await set(dbRef, event);
+        console.log(`Dados sincronizados com Firebase: ${key}`);
+        
+        // Notify about the change (useful for syncing components)
+        window.dispatchEvent(new CustomEvent('storage-change', { detail: { key, value } }));
+      } catch (error) {
+        console.error("Erro ao sincronizar com Firebase:", error);
+        // Continue silently in case of sync error, as data is already in localStorage
+      }
     } catch (error) {
       console.error("Erro ao armazenar dados:", error);
       throw new Error("Não foi possível salvar os dados. Verifique sua conexão com a internet e tente novamente.");
@@ -43,19 +50,24 @@ export const syncStorage: StorageInterface = {
   // Get data from storage
   getItem: async <T>(key: string, defaultValue: T): Promise<T> => {
     try {
-      // Check connection before trying to get from Firebase
-      const database = getFirebaseDatabase();
-      
-      if (!database) {
-        throw new Error("Não foi possível conectar ao banco de dados.");
-      }
+      // Always try from localStorage first for performance and offline support
+      const localData = getDataFromLocalStorage(key, defaultValue);
       
       try {
+        // Check connection before trying to get from Firebase
+        const database = getFirebaseDatabase();
+        
+        if (!database) {
+          console.warn("Firebase database indisponível, usando apenas dados locais");
+          return localData;
+        }
+        
+        // Try to get from Firebase with timeout
         const dbRef = ref(database, key);
         const snapshot = await Promise.race([
           get(dbRef),
           new Promise<never>((_, reject) => 
-            setTimeout(() => reject(new Error("Tempo esgotado ao buscar dados do banco de dados")), 10000)
+            setTimeout(() => reject(new Error("Tempo esgotado ao buscar dados do banco de dados")), 5000)
           )
         ]);
         
@@ -64,27 +76,20 @@ export const syncStorage: StorageInterface = {
           // Update the localStorage as cache
           saveToLocalStorage(key, event.data);
           return event.data;
-        } else {
-          // If not in Firebase, check if exists locally to sync
-          const storedEvent = getFromLocalStorage(key, defaultValue);
-          if (storedEvent) {
-            // Sync with Firebase
-            const dbRef = ref(database, key);
-            await set(dbRef, {
-              timestamp: Date.now(),
-              data: storedEvent.data
-            });
-            return storedEvent.data;
-          }
-          return defaultValue;
+        } else if (localData !== defaultValue) {
+          // If we have data locally but not in Firebase, sync to Firebase
+          await syncStorage.setItem(key, localData);
+          return localData;
         }
+        return defaultValue;
       } catch (error) {
-        console.error("Erro ao obter dados do Firebase:", error);
-        throw new Error("Não foi possível carregar os dados. Verifique sua conexão com a internet e tente novamente.");
+        console.warn("Erro ao obter dados do Firebase:", error);
+        // In case of error, fall back to local data
+        return localData;
       }
     } catch (error) {
       console.error("Erro ao recuperar dados armazenados:", error);
-      throw new Error("Erro ao recuperar dados. Por favor, verifique sua conexão e tente novamente.");
+      return defaultValue;
     }
   },
   
@@ -99,19 +104,25 @@ export const syncStorage: StorageInterface = {
       // Remove from localStorage
       removeFromLocalStorage(key);
       
-      // Check connection before trying to remove from Firebase
-      const database = getFirebaseDatabase();
-      
-      if (!database) {
-        throw new Error("Não foi possível conectar ao banco de dados.");
+      try {
+        // Check connection before trying to remove from Firebase
+        const database = getFirebaseDatabase();
+        
+        if (!database) {
+          console.warn("Firebase database indisponível, removendo apenas localmente");
+          return;
+        }
+        
+        // Remove from Firebase
+        const dbRef = ref(database, key);
+        await remove(dbRef);
+        
+        // Notify about the removal
+        window.dispatchEvent(new CustomEvent('storage-change', { detail: { key, value: null } }));
+      } catch (error) {
+        console.error("Erro ao remover dados do Firebase:", error);
+        // Continue silently as data is already removed from localStorage
       }
-      
-      // Remove from Firebase
-      const dbRef = ref(database, key);
-      await remove(dbRef);
-      
-      // Notify about the removal
-      window.dispatchEvent(new CustomEvent('storage-change', { detail: { key, value: null } }));
     } catch (error) {
       console.error("Erro ao remover dados:", error);
       throw new Error("Não foi possível remover os dados. Verifique sua conexão com a internet.");
@@ -140,26 +151,31 @@ export const syncStorage: StorageInterface = {
     
     // Also listen for Firebase changes if available
     const unsubscribeCallbacks: (() => void)[] = [];
-    const database = getFirebaseDatabase();
     
-    if (database) {
-      // Listen for changes in common data
-      ["users", "clients", "plans"].forEach(key => {
-        const dbRef = ref(database, key);
-        const unsubscribe = onValue(dbRef, (snapshot) => {
-          if (snapshot.exists()) {
-            const event = snapshot.val();
-            // Update localStorage as cache
-            saveToLocalStorage(key, event.data);
-            // Notify the change
-            callback(key, event.data);
-          }
-        }, (error) => {
-          console.error(`Erro ao ouvir mudanças em ${key}:`, error);
+    try {
+      const database = getFirebaseDatabase();
+      
+      if (database) {
+        // Listen for changes in common data
+        ["users", "clients", "plans"].forEach(key => {
+          const dbRef = ref(database, key);
+          const unsubscribe = onValue(dbRef, (snapshot) => {
+            if (snapshot.exists()) {
+              const event = snapshot.val();
+              // Update localStorage as cache
+              saveToLocalStorage(key, event.data);
+              // Notify the change
+              callback(key, event.data);
+            }
+          }, (error) => {
+            console.error(`Erro ao ouvir mudanças em ${key}:`, error);
+          });
+          
+          unsubscribeCallbacks.push(unsubscribe);
         });
-        
-        unsubscribeCallbacks.push(unsubscribe);
-      });
+      }
+    } catch (error) {
+      console.warn("Não foi possível configurar listeners do Firebase:", error);
     }
     
     // Return a function that removes all listeners
@@ -185,16 +201,22 @@ export const syncStorage: StorageInterface = {
   
   // Initialize default data
   initializeDefaultData: async () => {
-    await initializeDefaultData();
+    try {
+      await initializeDefaultData();
+      return true;
+    } catch (error) {
+      console.error("Erro ao inicializar dados padrão:", error);
+      throw error;
+    }
   }
 };
 
 // Initialize the system on module load
 (async () => {
   try {
-    // Check initial connection and initialize default data
-    await syncStorage.checkConnection();
-    await syncStorage.initializeDefaultData();
+    // Try to initialize Firebase and default data
+    initializeFirebase();
+    // We'll initialize default data when needed, not on module load
   } catch (error) {
     console.error("Erro na inicialização do syncStorage:", error);
   }

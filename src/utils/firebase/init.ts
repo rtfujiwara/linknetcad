@@ -2,12 +2,12 @@
 /**
  * Firebase initialization module
  */
-import { initializeApp } from "firebase/app";
+import { initializeApp, FirebaseApp } from "firebase/app";
 import { getDatabase, Database, ref, get } from "firebase/database";
 import { firebaseConfig } from "./config";
 
 // Firebase initialization state
-let app;
+let app: FirebaseApp | null = null;
 let database: Database | null = null;
 let firebaseInitialized = false;
 
@@ -15,7 +15,7 @@ let firebaseInitialized = false;
  * Initialize Firebase if not already initialized
  */
 export const initializeFirebase = () => {
-  if (firebaseInitialized) return database;
+  if (firebaseInitialized && database) return database;
   
   try {
     app = initializeApp(firebaseConfig);
@@ -45,19 +45,21 @@ export const getFirebaseDatabase = () => {
  * Check Firebase connection status
  */
 export const checkFirebaseConnection = async (): Promise<boolean> => {
-  if (!database) {
-    try {
+  try {
+    if (!database) {
       database = initializeFirebase();
       if (!database) return false;
-    } catch (error) {
-      throw new Error("Não foi possível estabelecer conexão com o banco de dados.");
     }
-  }
-  
-  try {
+    
     // Try a simple operation to verify connection
     const testRef = ref(database, ".info/connected");
-    const snapshot = await get(testRef);
+    const snapshot = await Promise.race([
+      get(testRef),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Timeout ao verificar conexão")), 5000);
+      })
+    ]);
+    
     return snapshot.exists() && snapshot.val() === true;
   } catch (error) {
     console.error("Erro ao verificar conexão com Firebase:", error);
