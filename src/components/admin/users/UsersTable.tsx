@@ -3,6 +3,14 @@ import { Button } from "@/components/ui/button";
 import { KeyRound, PenSquare, Trash2 } from "lucide-react";
 import { User } from "@/types/user";
 import { PERMISSIONS } from "./userConstants";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface UsersTableProps {
   users: User[];
@@ -27,21 +35,21 @@ export const UsersTable = ({
 
   return (
     <div className="bg-white rounded-lg shadow">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b">
-            <th className="px-4 py-2 text-left">Nome</th>
-            <th className="px-4 py-2 text-left">Usuário</th>
-            <th className="px-4 py-2 text-left">Permissões</th>
-            <th className="px-4 py-2 text-left">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nome</TableHead>
+            <TableHead>Usuário</TableHead>
+            <TableHead>Permissões</TableHead>
+            <TableHead>Ações</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {filteredUsers.map((user) => (
-            <tr key={user.id} className="border-b">
-              <td className="px-4 py-2">{user.name}</td>
-              <td className="px-4 py-2">{user.username}</td>
-              <td className="px-4 py-2">
+            <TableRow key={user.id}>
+              <TableCell>{user.name}</TableCell>
+              <TableCell>{user.username}</TableCell>
+              <TableCell>
                 <div className="flex flex-wrap gap-1">
                   {user.permissions.map((permission) => (
                     <span
@@ -52,8 +60,8 @@ export const UsersTable = ({
                     </span>
                   ))}
                 </div>
-              </td>
-              <td className="px-4 py-2">
+              </TableCell>
+              <TableCell>
                 <div className="flex space-x-2">
                   <Button
                     variant="outline"
@@ -86,11 +94,11 @@ export const UsersTable = ({
                     </>
                   )}
                 </div>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 };
