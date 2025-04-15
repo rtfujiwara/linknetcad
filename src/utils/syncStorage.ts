@@ -4,7 +4,7 @@
  */
 import { initializeFirebase } from "./firebase/init";
 import { StorageInterface } from "./storage/types";
-import { setItem, getItem, getItemSync, removeItem, clear, addChangeListener, checkConnection, initializeData } from "./storage/syncManager";
+import { setItem, getItem, getItemSync, removeItem, clear, addChangeListener, checkConnection, initializeDefaultData } from "./storage/syncManager";
 
 export const syncStorage: StorageInterface = {
   setItem,
@@ -14,7 +14,7 @@ export const syncStorage: StorageInterface = {
   clear,
   addChangeListener,
   checkConnection,
-  initializeDefaultData: initializeData
+  initializeDefaultData
 };
 
 // Initialize the system on module load
