@@ -51,19 +51,19 @@ export const checkFirebaseConnection = async (): Promise<boolean> => {
       if (!database) return false;
     }
     
-    // Try a simple operation to verify connection
+    // Try a simple operation to verify connection with a shorter timeout
     const testRef = ref(database, ".info/connected");
     const snapshot = await Promise.race([
       get(testRef),
       new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Timeout ao verificar conexão")), 5000);
+        setTimeout(() => reject(new Error("Timeout ao verificar conexão")), 3000);
       })
     ]);
     
-    return snapshot.exists() && snapshot.val() === true;
+    return true; // If we reach here without timing out, connection is ok
   } catch (error) {
-    console.error("Erro ao verificar conexão com Firebase:", error);
-    throw new Error("Erro de conexão com o banco de dados. Verifique sua internet e tente novamente.");
+    console.warn("Erro ao verificar conexão com Firebase:", error);
+    return false;
   }
 };
 

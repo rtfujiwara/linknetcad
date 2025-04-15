@@ -22,18 +22,22 @@ export const setItem = async <T>(key: string, value: T): Promise<void> => {
     // Always save to localStorage first for reliability
     saveToLocalStorage(key, value);
     
-    // Try to sync with Firebase if possible
+    // Try to sync with Firebase if possible with a timeout
     try {
-      await saveToFirebase(key, value);
+      const timeoutPromise = new Promise<void>((_, reject) => {
+        setTimeout(() => reject(new Error("Timeout ao salvar no Firebase")), 3000);
+      });
+      
+      await Promise.race([saveToFirebase(key, value), timeoutPromise]);
     } catch (error) {
-      console.warn("Erro ao sincronizar com Firebase, dados salvos apenas localmente");
+      console.warn("Erro ao sincronizar com Firebase, dados salvos apenas localmente:", error);
     }
     
     // Notify about the change (useful for syncing components)
     notifyChange(key, value);
   } catch (error) {
     console.error("Erro ao armazenar dados:", error);
-    throw new Error("Não foi possível salvar os dados. Verifique sua conexão com a internet.");
+    // Even if there's an error with Firebase, we've saved to localStorage
   }
 };
 
@@ -46,8 +50,15 @@ export const getItem = async <T>(key: string, defaultValue: T): Promise<T> => {
     const localData = getDataFromLocalStorage(key, defaultValue);
     
     try {
-      // Try to get from Firebase
-      const { data, exists } = await getFromFirebase<T>(key);
+      // Try to get from Firebase with a timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Tempo esgotado ao buscar dados do banco de dados")), 3000);
+      });
+      
+      const firebasePromise = getFromFirebase<T>(key);
+      const { data, exists } = await Promise.race([firebasePromise, timeoutPromise.then(() => {
+        throw new Error("Timeout getting data from Firebase");
+      })]);
       
       if (exists) {
         // Update the localStorage as cache
@@ -55,7 +66,11 @@ export const getItem = async <T>(key: string, defaultValue: T): Promise<T> => {
         return data;
       } else if (localData !== defaultValue) {
         // If we have data locally but not in Firebase, sync to Firebase
-        await setItem(key, localData);
+        try {
+          await setItem(key, localData);
+        } catch (e) {
+          console.warn("Falha ao sincronizar dados locais com Firebase:", e);
+        }
         return localData;
       }
       return defaultValue;
@@ -85,14 +100,21 @@ export const removeItem = async (key: string): Promise<void> => {
     // Remove from localStorage
     removeFromLocalStorage(key);
     
-    // Try to remove from Firebase
-    await removeFromFirebase(key);
+    // Try to remove from Firebase with a timeout
+    try {
+      const timeoutPromise = new Promise<void>((_, reject) => {
+        setTimeout(() => reject(new Error("Timeout ao remover do Firebase")), 3000);
+      });
+      
+      await Promise.race([removeFromFirebase(key), timeoutPromise]);
+    } catch (error) {
+      console.warn("Erro ao remover do Firebase, removido apenas localmente:", error);
+    }
     
     // Notify about the removal
     notifyChange(key, null);
   } catch (error) {
     console.error("Erro ao remover dados:", error);
-    throw new Error("Não foi possível remover os dados. Verifique sua conexão com a internet.");
   }
 };
 
@@ -141,7 +163,14 @@ export const addChangeListener = (callback: (key: string, value: any) => void): 
  */
 export const checkConnection = async (): Promise<boolean> => {
   try {
-    const isConnected = await isFirebaseConnected();
+    // Use a timeout to prevent hanging
+    const isConnected = await Promise.race([
+      isFirebaseConnected(),
+      new Promise<boolean>((resolve) => {
+        setTimeout(() => resolve(false), 3000);
+      })
+    ]);
+    
     if (!isConnected) {
       console.warn("Sem conexão com o banco de dados. Verificação retornou false.");
     }
