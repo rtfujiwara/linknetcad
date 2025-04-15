@@ -47,7 +47,7 @@ export const useAuthState = () => {
   const initializeDefaultData = useCallback(async () => {
     try {
       // Usa um timeout para garantir que a inicialização não fique presa
-      const initPromise = syncStorage.initializeData();
+      const initPromise = syncStorage.initializeDefaultData();
       const timeoutPromise = new Promise<boolean>((resolve) => {
         setTimeout(() => {
           console.warn("Timeout na inicialização de dados");
