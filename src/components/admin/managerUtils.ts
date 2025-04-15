@@ -1,70 +1,47 @@
-
-import { syncStorage } from "@/utils/syncStorage";
+import { Client } from "@/types/client";
 import { Plan } from "@/types/plan";
 import { User } from "@/types/user";
+import { syncStorage } from "@/utils/syncStorage";
 
-export const planManagerUtils = {
-  getPlans: async (): Promise<Plan[]> => {
-    try {
-      // Verifica a conexão primeiro
-      const isConnected = await syncStorage.checkConnection();
-      if (!isConnected) {
-        console.warn("Conexão não disponível, usando dados locais");
-        return syncStorage.getItemSync<Plan[]>("plans", []);
-      }
-      
-      // Obtém os planos
-      return await syncStorage.getItem<Plan[]>("plans", []);
-    } catch (error) {
-      console.error("Erro ao obter planos:", error);
-      throw error;
-    }
+export const clientManagerUtils = {
+  async getClients(): Promise<Client[]> {
+    return await syncStorage.getItem<Client[]>("clients", []);
   },
-  
-  getPlansSync: (): Plan[] => {
-    return syncStorage.getItemSync<Plan[]>("plans", []);
+
+  async saveClients(clients: Client[]): Promise<void> {
+    return await syncStorage.setItem("clients", clients);
   },
-  
-  savePlans: async (plans: Plan[]): Promise<void> => {
-    try {
-      // Tenta salvar os planos, mesmo que offline (serão sincronizados depois)
-      await syncStorage.setItem("plans", plans);
-    } catch (error) {
-      console.error("Erro ao salvar planos:", error);
-      throw error;
-    }
-  }
+
+  async deleteClient(clientId: number): Promise<void> {
+    const clients = await this.getClients();
+    const updatedClients = clients.filter((client) => client.id !== clientId);
+    await this.saveClients(updatedClients);
+  },
 };
 
-export const userManagerUtils = {
-  getUsers: async (): Promise<User[]> => {
-    try {
-      // Verifica a conexão primeiro
-      const isConnected = await syncStorage.checkConnection();
-      if (!isConnected) {
-        console.warn("Conexão não disponível, usando dados locais");
-        return syncStorage.getItemSync<User[]>("users", []);
-      }
-      
-      // Obtém os usuários
-      return await syncStorage.getItem<User[]>("users", []);
-    } catch (error) {
-      console.error("Erro ao obter usuários:", error);
-      throw error;
-    }
+export const planManagerUtils = {
+  async getPlans(): Promise<Plan[]> {
+    return await syncStorage.getItem<Plan[]>("plans", []);
   },
 
-  getUsersSync: (): User[] => {
-    return syncStorage.getItemSync<User[]>("users", []);
+  async savePlans(plans: Plan[]): Promise<void> {
+    return await syncStorage.setItem("plans", plans);
+  },
+
+  async deletePlan(planId: number): Promise<void> {
+    const plans = await this.getPlans();
+    const updatedPlans = plans.filter((plan) => plan.id !== planId);
+    await this.savePlans(updatedPlans);
+  },
+};
+
+// Add to userManagerUtils
+export const userManagerUtils = {
+  async getUsers(): Promise<User[]> {
+    return await syncStorage.getItem<User[]>("users", []);
   },
   
-  saveUsers: async (users: User[]): Promise<void> => {
-    try {
-      // Tenta salvar os usuários, mesmo que offline (serão sincronizados depois)
-      await syncStorage.setItem("users", users);
-    } catch (error) {
-      console.error("Erro ao salvar usuários:", error);
-      throw error;
-    }
+  async saveUsers(users: User[]): Promise<void> {
+    return await syncStorage.setItem("users", users);
   }
 };
