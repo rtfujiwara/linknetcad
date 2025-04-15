@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { AuthContextData } from "./types";
 import { User, Permission } from "@/types/user";
 import { AuthLoading } from "@/components/auth/AuthLoading";
@@ -26,6 +26,9 @@ interface AuthProviderProps {
 
 // Componente provedor de autenticação
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  // Flag para controlar a inicialização única
+  const [isInitialized, setIsInitialized] = useState(false);
+  
   // Usa o hook de estado para gerenciar o estado de autenticação
   const {
     currentUser,

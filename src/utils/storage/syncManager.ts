@@ -7,6 +7,10 @@ import { saveToFirebase, getFromFirebase, removeFromFirebase, addFirebaseListene
 import { StorageEvent } from "./types";
 import { initializeDefaultData } from "./defaultData";
 
+// Flag para controlar tentativas repetidas
+let connectionCheckInProgress = false;
+let defaultDataInitialized = false;
+
 /**
  * Notify about storage changes
  */
@@ -48,6 +52,12 @@ export const getItem = async <T>(key: string, defaultValue: T): Promise<T> => {
   try {
     // Always try from localStorage first for performance and offline support
     const localData = getDataFromLocalStorage(key, defaultValue);
+    
+    // Se já temos dados locais e há uma verificação de conexão em andamento, 
+    // retorne os dados locais imediatamente para evitar loops
+    if (localData !== defaultValue && connectionCheckInProgress) {
+      return localData;
+    }
     
     try {
       // Try to get from Firebase with a timeout
@@ -162,6 +172,12 @@ export const addChangeListener = (callback: (key: string, value: any) => void): 
  * Check connection and return boolean status
  */
 export const checkConnection = async (): Promise<boolean> => {
+  if (connectionCheckInProgress) {
+    return false; // Retorna imediatamente para evitar múltiplas verificações simultâneas
+  }
+  
+  connectionCheckInProgress = true;
+  
   try {
     // Use a timeout to prevent hanging
     const isConnected = await Promise.race([
@@ -174,9 +190,12 @@ export const checkConnection = async (): Promise<boolean> => {
     if (!isConnected) {
       console.warn("Sem conexão com o banco de dados. Verificação retornou false.");
     }
+    
+    connectionCheckInProgress = false;
     return isConnected;
   } catch (error) {
     console.error("Erro ao verificar conexão:", error);
+    connectionCheckInProgress = false;
     return false;
   }
 };
@@ -185,8 +204,13 @@ export const checkConnection = async (): Promise<boolean> => {
  * Initialize default data
  */
 export const initializeData = async (): Promise<boolean> => {
+  if (defaultDataInitialized) {
+    return true; // Previne inicializações repetidas
+  }
+  
   try {
     await initializeDefaultData();
+    defaultDataInitialized = true;
     return true;
   } catch (error) {
     console.error("Erro ao inicializar dados padrão:", error);

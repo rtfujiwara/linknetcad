@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { User } from "@/types/user";
 import { syncStorage } from "@/utils/syncStorage";
 import { useToast } from "@/components/ui/use-toast";
@@ -16,34 +16,59 @@ export const useAuthState = () => {
   const navigate = useNavigate();
 
   /**
-   * Check connection with Firebase
+   * Check connection with Firebase with retry limit to prevent loops
    */
-  const checkConnection = async () => {
+  const checkConnection = useCallback(async () => {
     try {
-      await syncStorage.checkConnection();
-      setIsOfflineMode(false);
-      console.log("Conexão com o Firebase estabelecida com sucesso");
-      return true;
+      // Usa um timeout para garantir que a verificação não fique presa
+      const connectionPromise = syncStorage.checkConnection();
+      const timeoutPromise = new Promise<boolean>((resolve) => {
+        setTimeout(() => {
+          console.warn("Timeout na verificação de conexão");
+          resolve(false);
+        }, 3000);
+      });
+      
+      const isConnected = await Promise.race([connectionPromise, timeoutPromise]);
+      
+      setIsOfflineMode(!isConnected);
+      console.log(isConnected ? "Conexão com o Firebase estabelecida com sucesso" : "Sem conexão com o Firebase");
+      return isConnected;
     } catch (error) {
       console.warn("Funcionando em modo offline:", error);
       setIsOfflineMode(true);
       return false;
     }
-  };
+  }, []);
 
   /**
-   * Initialize default data
+   * Initialize default data with timeout
    */
-  const initializeDefaultData = async () => {
+  const initializeDefaultData = useCallback(async () => {
     try {
-      await syncStorage.initializeDefaultData();
-      console.log("Dados inicializados com sucesso");
-      return true;
+      // Usa um timeout para garantir que a inicialização não fique presa
+      const initPromise = syncStorage.initializeData();
+      const timeoutPromise = new Promise<boolean>((resolve) => {
+        setTimeout(() => {
+          console.warn("Timeout na inicialização de dados");
+          resolve(false);
+        }, 3000);
+      });
+      
+      const success = await Promise.race([initPromise, timeoutPromise]);
+      
+      if (success) {
+        console.log("Dados inicializados com sucesso");
+      } else {
+        console.warn("Não foi possível inicializar todos os dados");
+      }
+      
+      return success;
     } catch (error) {
       console.warn("Erro ao inicializar dados:", error);
       return false;
     }
-  };
+  }, []);
 
   return {
     currentUser,

@@ -10,11 +10,19 @@ import { firebaseConfig } from "./config";
 let app: FirebaseApp | null = null;
 let database: Database | null = null;
 let firebaseInitialized = false;
+let initializationAttempted = false;
 
 /**
  * Initialize Firebase if not already initialized
  */
 export const initializeFirebase = () => {
+  // Se já tentou inicializar, não tenta novamente para evitar loops
+  if (initializationAttempted) {
+    return database;
+  }
+  
+  initializationAttempted = true;
+  
   if (firebaseInitialized && database) return database;
   
   try {
@@ -27,7 +35,7 @@ export const initializeFirebase = () => {
     console.error("Erro ao inicializar Firebase:", error);
     firebaseInitialized = false;
     database = null;
-    throw new Error("Não foi possível conectar ao banco de dados. Verifique sua conexão com a internet.");
+    return null;
   }
 };
 
@@ -39,6 +47,14 @@ export const getFirebaseDatabase = () => {
     return initializeFirebase();
   }
   return database;
+};
+
+/**
+ * Reset initialization status
+ * Útil para testes ou para forçar a reconexão
+ */
+export const resetFirebaseInitialization = () => {
+  initializationAttempted = false;
 };
 
 /**
@@ -67,7 +83,7 @@ export const checkFirebaseConnection = async (): Promise<boolean> => {
   }
 };
 
-// Try to initialize Firebase on module load
+// Try to initialize Firebase on module load but don't throw errors
 try {
   initializeFirebase();
 } catch (error) {
