@@ -110,6 +110,14 @@ export const checkFirebaseConnection = async (): Promise<boolean> => {
   }
 };
 
+/**
+ * Check if Firebase is connected
+ * This is the missing export that was causing the first error
+ */
+export const isFirebaseConnected = async (): Promise<boolean> => {
+  return checkFirebaseConnection();
+};
+
 // Try to initialize Firebase on module load but don't throw errors
 try {
   initializeFirebase();
