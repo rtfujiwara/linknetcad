@@ -1,7 +1,6 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { OfflineAlert } from "./OfflineAlert";
 import { LoginForm } from "./LoginForm";
 
 interface LoginContainerProps {
@@ -24,10 +23,6 @@ export const LoginContainer = ({
       <h1 className="text-2xl font-semibold text-center mb-6 text-blue-900">
         {showCreateAdmin ? "Criar Primeiro Administrador" : "Acesso Administrativo"}
       </h1>
-      
-      {isOfflineMode && (
-        <OfflineAlert onRetryConnection={onRetryConnection} />
-      )}
       
       <LoginForm 
         showCreateAdmin={showCreateAdmin} 

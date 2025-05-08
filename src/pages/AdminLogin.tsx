@@ -21,10 +21,10 @@ const AdminLogin = () => {
       setIsError(false);
       
       try {
-        // Reseta o status de verificação de conexão
+        // Reseta o status de verificação de conexão e tenta conectar automaticamente
         resetConnectionCheck();
         
-        // Verifica o status da conexão
+        // Verifica o status da conexão sem mostrar mensagens ao usuário
         const isOnline = await syncStorage.checkConnection();
         setIsOfflineMode(!isOnline);
         
@@ -33,7 +33,7 @@ const AdminLogin = () => {
         
         // Adiciona um timeout para não ficar travado infinitamente
         const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error("Timeout ao verificar usuários")), 10000);
+          setTimeout(() => reject(new Error("Timeout ao verificar usuários")), 8000);
         });
         
         const usersPromise = syncStorage.getItem("users", []);
@@ -48,50 +48,56 @@ const AdminLogin = () => {
         setShowCreateAdmin(true);
         setIsError(true);
         setIsOfflineMode(true);
-        toast({
-          variant: "destructive",
-          title: "Erro de conexão",
-          description: "Não foi possível verificar os usuários existentes. Funcionando em modo offline.",
-        });
       } finally {
         setIsLoading(false);
       }
     };
 
+    // Executa a checagem inicial e configura verificações periódicas automáticas
     checkUsers();
+    
+    // Configure um intervalo para tentar reconectar periodicamente sem avisar o usuário
+    const autoReconnectInterval = setInterval(async () => {
+      try {
+        resetConnectionCheck();
+        const isOnline = await syncStorage.checkConnection();
+        setIsOfflineMode(!isOnline);
+        
+        if (isOnline) {
+          // Se conseguiu conectar, recarrega a lista de usuários
+          const users = await syncStorage.getItem("users", []);
+          setShowCreateAdmin(!users || users.length === 0);
+        }
+      } catch (error) {
+        console.error("Falha na reconexão automática:", error);
+      }
+    }, 10000); // Tenta a cada 10 segundos
+    
+    return () => {
+      clearInterval(autoReconnectInterval);
+    };
   }, [toast]);
 
+  // Função para tentar reconectar (agora silenciosa, sem notificações)
   const retryConnection = async () => {
-    setIsLoading(true);
-    
-    toast({
-      title: "Verificando conexão",
-      description: "Tentando reconectar ao servidor...",
-    });
-    
-    // Reset connection check status
-    resetConnectionCheck();
-    
-    const isOnline = await syncStorage.checkConnection();
-    setIsOfflineMode(!isOnline);
-    
-    if (isOnline) {
-      toast({
-        title: "Conexão restabelecida",
-        description: "O sistema agora está operando em modo online.",
-      });
+    try {
+      // Reset connection check status
+      resetConnectionCheck();
       
-      // Recarrega a página para refletir as mudanças
-      window.location.reload();
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Falha na conexão",
-        description: "Não foi possível conectar ao servidor. Continuando em modo offline.",
-      });
+      const isOnline = await syncStorage.checkConnection();
+      setIsOfflineMode(!isOnline);
+      
+      if (isOnline) {
+        // Recarrega a lista de usuários silenciosamente
+        const users = await syncStorage.getItem("users", []);
+        setShowCreateAdmin(!users || users.length === 0);
+      }
+      
+      return isOnline;
+    } catch (error) {
+      console.error("Falha na tentativa de reconexão:", error);
+      return false;
     }
-    
-    setIsLoading(false);
   };
 
   if (isLoading) {

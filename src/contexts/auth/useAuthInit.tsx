@@ -26,8 +26,7 @@ export const useAuthInit = (
       const initTimeout = setTimeout(() => {
         if (!isMounted) return;
         
-        console.warn("Timeout de inicialização, entrando em modo offline");
-        setIsOfflineMode(true);
+        console.warn("Timeout de inicialização, continuando em segundo plano");
         
         // Recupera o usuário atual do localStorage como fallback
         try {
@@ -43,7 +42,7 @@ export const useAuthInit = (
         if (isMounted) {
           setIsLoading(false);
         }
-      }, 3000); // Reduzido de 5s para 3s para melhor responsividade
+      }, 2000); // Reduzido para 2s para melhor responsividade
       
       try {
         // Tenta verificar a conexão com o Firebase mais rapidamente
@@ -52,15 +51,16 @@ export const useAuthInit = (
           isConnected = await Promise.race([
             checkConnection(),
             new Promise<boolean>((resolve) => {
-              setTimeout(() => resolve(false), 2000); // Timeout mais curto
+              setTimeout(() => resolve(false), 1500); // Timeout ainda mais curto
             })
           ]);
           
           if (isMounted) {
+            // Define o modo offline internamente mas não mostramos ao usuário
             setIsOfflineMode(!isConnected);
           }
         } catch (error) {
-          console.warn("Funcionando em modo offline:", error);
+          console.warn("Problema de conectividade, tentando operações locais:", error);
           if (isMounted) {
             setIsOfflineMode(true);
           }
@@ -73,7 +73,7 @@ export const useAuthInit = (
             await Promise.race([
               initializeDefaultData(),
               new Promise<boolean>((resolve) => {
-                setTimeout(() => resolve(false), 2000);
+                setTimeout(() => resolve(false), 1500);
               })
             ]);
           }
@@ -95,6 +95,7 @@ export const useAuthInit = (
       } catch (error) {
         console.error("Erro ao verificar autenticação:", error);
         if (isMounted) {
+          // Define o modo offline internamente mas não mostramos ao usuário
           setIsOfflineMode(true);
           
           // Mesmo em modo offline, tenta recuperar o usuário do localStorage
@@ -113,16 +114,17 @@ export const useAuthInit = (
 
     checkAuth();
     
-    // Configura uma verificação periódica de conectividade
+    // Configura uma verificação periódica de conectividade (silenciosa)
     const periodicCheck = setInterval(() => {
       if (isMounted) {
+        // Faz uma verificação silenciosa a cada intervalo
         checkConnection().then(isConnected => {
           if (isMounted) {
             setIsOfflineMode(!isConnected);
           }
         });
       }
-    }, 30000); // Verifica a cada 30 segundos
+    }, 15000); // Verifica a cada 15 segundos (reduzido de 30s)
     
     // Limpeza do useEffect
     return () => {

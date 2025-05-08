@@ -2,13 +2,15 @@
 /**
  * Connection management module
  */
-import { isFirebaseConnected, getConnectionStatus, resetFirebaseInitialization } from "../firebase/init";
+import { checkFirebaseConnection, getConnectionStatus, resetFirebaseInitialization } from "../firebase/init";
 
 // Flag para controlar tentativas repetidas
 let connectionCheckInProgress = false;
 let lastConnectionAttempt = 0;
 let reconnectionTimer: ReturnType<typeof setTimeout> | null = null;
 const CONNECTION_RETRY_INTERVAL = 5000; // Reduzido para 5 segundos (era 10s)
+const MAX_RETRY_ATTEMPTS = 5;
+let currentRetryAttempts = 0;
 
 /**
  * Check connection and return boolean status
@@ -29,29 +31,33 @@ export const checkConnection = async (): Promise<boolean> => {
   
   connectionCheckInProgress = true;
   lastConnectionAttempt = now;
+  currentRetryAttempts++;
   
   try {
     // Force reset initialization if needed to ensure proper connection check
-    if (now - lastConnectionAttempt > 30000) { // 30 segundos (era 60s)
+    if (now - lastConnectionAttempt > 30000 || currentRetryAttempts > MAX_RETRY_ATTEMPTS) { // 30 segundos ou muitas tentativas
       resetFirebaseInitialization();
+      currentRetryAttempts = 0;
     }
 
-    // Use a timeout to prevent hanging (3 segundos de timeout - reduzido de 8s)
+    // Use a timeout to prevent hanging (reduzido para 2.5 segundos)
     const isConnected = await Promise.race([
-      isFirebaseConnected(),
+      checkFirebaseConnection(),
       new Promise<boolean>((resolve) => {
         setTimeout(() => {
           console.warn("Timeout na verificação de conexão");
           resolve(false);
-        }, 3000);
+        }, 2500);
       })
     ]);
     
     if (!isConnected) {
-      console.warn("Sem conexão com o banco de dados. Agendando verificação automática.");
+      console.warn("Sem conexão com o banco de dados. Agendando verificação automática silenciosa.");
       scheduleReconnection();
     } else {
       console.log("Conexão com o banco de dados estabelecida com sucesso!");
+      // Reseta o contador de tentativas
+      currentRetryAttempts = 0;
     }
     
     connectionCheckInProgress = false;
@@ -73,12 +79,14 @@ const scheduleReconnection = () => {
     clearTimeout(reconnectionTimer);
   }
   
-  // Programa um nova verificação automática
+  // Programa um nova verificação automática com intervalo progressivo
+  const delay = Math.min(CONNECTION_RETRY_INTERVAL * Math.pow(1.5, currentRetryAttempts), 30000);
+  
   reconnectionTimer = setTimeout(() => {
-    console.log("Tentando verificação automática de conexão...");
+    console.log(`Tentando verificação automática de conexão (tentativa ${currentRetryAttempts})...`);
     resetConnectionCheck();
     checkConnection();
-  }, CONNECTION_RETRY_INTERVAL);
+  }, delay);
 };
 
 /**

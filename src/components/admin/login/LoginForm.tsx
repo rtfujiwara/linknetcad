@@ -6,8 +6,6 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { syncStorage } from "@/utils/syncStorage";
-import { AlertCircle, Info } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface LoginFormProps {
   showCreateAdmin: boolean;
@@ -38,12 +36,19 @@ export const LoginForm = ({ showCreateAdmin, isOfflineMode, onRetryConnection }:
         await syncStorage.setItem("users", [adminUser]);
         toast({
           title: "Administrador criado",
-          description: isOfflineMode 
-            ? "O usuário administrador foi criado localmente e será sincronizado quando a conexão for restabelecida."
-            : "O usuário administrador foi criado com sucesso",
+          description: "O usuário administrador foi criado com sucesso",
         });
         login(credentials.username, credentials.password);
       } else {
+        // Tentar conexão automática antes do login
+        try {
+          // Silenciosamente tenta reconectar antes de logar
+          await onRetryConnection();
+        } catch (error) {
+          console.error("Falha na tentativa automática de reconexão:", error);
+          // Continua com o login mesmo se a reconexão falhar
+        }
+        
         login(credentials.username, credentials.password);
       }
     } catch (error) {
@@ -58,13 +63,10 @@ export const LoginForm = ({ showCreateAdmin, isOfflineMode, onRetryConnection }:
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {isOfflineMode && (
-        <Alert variant="default" className="bg-yellow-50 border-yellow-200">
-          <Info className="h-4 w-4 text-yellow-600" />
-          <AlertDescription className="text-yellow-700">
-            Modo offline detectado. Use as credenciais padrão: <strong>admin / admin</strong>
-          </AlertDescription>
-        </Alert>
+      {showCreateAdmin && (
+        <div className="bg-blue-50 p-3 rounded text-sm text-blue-800">
+          <p>Bem-vindo ao primeiro acesso! Crie um usuário e senha para o administrador do sistema.</p>
+        </div>
       )}
 
       <div className="space-y-2">
@@ -96,26 +98,12 @@ export const LoginForm = ({ showCreateAdmin, isOfflineMode, onRetryConnection }:
         />
       </div>
 
-      {showCreateAdmin && (
-        <div className="bg-blue-50 p-3 rounded text-sm text-blue-800">
-          <p>Bem-vindo ao primeiro acesso! Crie um usuário e senha para o administrador do sistema.</p>
-          {isOfflineMode && <p className="mt-2 font-semibold">Nota: O sistema está operando em modo offline. Os dados serão sincronizados quando a conexão for restabelecida.</p>}
-        </div>
-      )}
-
       <Button
         type="submit"
         className="w-full bg-blue-600 hover:bg-blue-700 transition-colors"
       >
         {showCreateAdmin ? "Criar Administrador" : "Entrar"}
       </Button>
-      
-      {isOfflineMode && !showCreateAdmin && (
-        <div className="text-sm text-center space-y-1">
-          <p className="text-gray-600">Usando o sistema em modo offline.</p>
-          <p className="font-medium text-blue-600">Usuário: admin | Senha: admin</p>
-        </div>
-      )}
     </form>
   );
 };

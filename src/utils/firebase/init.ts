@@ -13,11 +13,17 @@ let firebaseInitialized = false;
 let initializationAttempted = false;
 let connectionStatus: boolean | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let initializationPromise: Promise<Database | null> | null = null;
 
 /**
  * Initialize Firebase if not already initialized
  */
 export const initializeFirebase = () => {
+  // Se já existe uma inicialização em andamento, retorna a promise
+  if (initializationPromise) {
+    return initializationPromise;
+  }
+
   // Se já tentou inicializar, não tenta novamente para evitar loops
   if (initializationAttempted) {
     return database;
@@ -28,34 +34,61 @@ export const initializeFirebase = () => {
   if (firebaseInitialized && database) return database;
   
   try {
-    app = initializeApp(firebaseConfig);
-    database = getDatabase(app);
-    firebaseInitialized = true;
-    console.log("Firebase inicializado com sucesso");
-    
-    // Listen for connection status changes
-    if (database) {
-      const connRef = ref(database, '.info/connected');
-      onValue(connRef, (snap) => {
-        const newStatus = snap.val() === true;
+    // Cria uma nova promise que será resolvida quando o Firebase for inicializado
+    initializationPromise = new Promise<Database | null>(async (resolve) => {
+      try {
+        app = initializeApp(firebaseConfig);
+        database = getDatabase(app);
+        firebaseInitialized = true;
+        console.log("Firebase inicializado com sucesso");
         
-        // Se o status mudou para conectado após uma desconexão
-        if (!connectionStatus && newStatus) {
-          console.log("Conexão com Firebase restabelecida automaticamente");
-        } 
-        // Se o status mudou para desconectado
-        else if (connectionStatus && !newStatus) {
-          console.log("Conexão com Firebase perdida, tentando reconectar automaticamente");
-          // Agenda reconexão automática
-          scheduleReconnection();
+        // Listen for connection status changes
+        if (database) {
+          const connRef = ref(database, '.info/connected');
+          onValue(connRef, (snap) => {
+            const newStatus = snap.val() === true;
+            
+            // Se o status mudou para conectado após uma desconexão
+            if (!connectionStatus && newStatus) {
+              console.log("Conexão com Firebase restabelecida automaticamente");
+            } 
+            // Se o status mudou para desconectado
+            else if (connectionStatus && !newStatus) {
+              console.log("Conexão com Firebase perdida, tentando reconectar automaticamente");
+              // Agenda reconexão automática
+              scheduleReconnection();
+            }
+            
+            connectionStatus = newStatus;
+            console.log(`Status da conexão Firebase: ${connectionStatus ? 'conectado' : 'desconectado'}`);
+          });
         }
         
-        connectionStatus = newStatus;
-        console.log(`Status da conexão Firebase: ${connectionStatus ? 'conectado' : 'desconectado'}`);
-      });
-    }
+        // Limpa a promise após completar
+        setTimeout(() => {
+          initializationPromise = null;
+        }, 1000);
+        
+        resolve(database);
+      } catch (error) {
+        console.error("Erro ao inicializar Firebase:", error);
+        firebaseInitialized = false;
+        database = null;
+        connectionStatus = false;
+        
+        // Agenda reconexão automática em caso de falha
+        scheduleReconnection();
+        
+        // Limpa a promise após completar
+        setTimeout(() => {
+          initializationPromise = null;
+        }, 1000);
+        
+        resolve(null);
+      }
+    });
     
-    return database;
+    return initializationPromise;
   } catch (error) {
     console.error("Erro ao inicializar Firebase:", error);
     firebaseInitialized = false;
@@ -65,6 +98,7 @@ export const initializeFirebase = () => {
     // Agenda reconexão automática em caso de falha
     scheduleReconnection();
     
+    initializationPromise = null;
     return null;
   }
 };
@@ -84,7 +118,7 @@ const scheduleReconnection = () => {
     resetFirebaseInitialization();
     initializeFirebase();
     reconnectTimer = null;
-  }, 5000); // Tenta a cada 5 segundos
+  }, 3000); // Tenta a cada 3 segundos (reduzido de 5s)
 };
 
 /**
@@ -119,7 +153,7 @@ export const getConnectionStatus = () => {
 export const checkFirebaseConnection = async (): Promise<boolean> => {
   try {
     if (!database) {
-      database = initializeFirebase();
+      database = await initializeFirebase();
       if (!database) return false;
     }
     
@@ -133,7 +167,7 @@ export const checkFirebaseConnection = async (): Promise<boolean> => {
     const snapshot = await Promise.race([
       get(testRef),
       new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Timeout ao verificar conexão")), 3000); // Reduzido de 8s para 3s
+        setTimeout(() => reject(new Error("Timeout ao verificar conexão")), 2000); // Reduzido de 3s para 2s
       })
     ]);
     
@@ -151,7 +185,8 @@ export const checkFirebaseConnection = async (): Promise<boolean> => {
 };
 
 /**
- * Check if Firebase is connected
+ * Check if Firebase is connected - this is essentially an alias
+ * for checkFirebaseConnection for backwards compatibility
  */
 export const isFirebaseConnected = async (): Promise<boolean> => {
   return checkFirebaseConnection();
