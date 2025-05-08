@@ -6,6 +6,7 @@ import { syncStorage } from "@/utils/syncStorage";
 import { LoadingScreen } from "@/components/admin/login/LoadingScreen";
 import { BackgroundEffects } from "@/components/admin/login/BackgroundEffects";
 import { LoginContainer } from "@/components/admin/login/LoginContainer";
+import { resetConnectionCheck } from "@/utils/storage/connectionManager";
 
 const AdminLogin = () => {
   const [showCreateAdmin, setShowCreateAdmin] = useState(false);
@@ -20,6 +21,9 @@ const AdminLogin = () => {
       setIsError(false);
       
       try {
+        // Reseta o status de verificação de conexão
+        resetConnectionCheck();
+        
         // Verifica o status da conexão
         const isOnline = await syncStorage.checkConnection();
         setIsOfflineMode(!isOnline);
@@ -58,10 +62,15 @@ const AdminLogin = () => {
   }, [toast]);
 
   const retryConnection = async () => {
+    setIsLoading(true);
+    
     toast({
       title: "Verificando conexão",
       description: "Tentando reconectar ao servidor...",
     });
+    
+    // Reset connection check status
+    resetConnectionCheck();
     
     const isOnline = await syncStorage.checkConnection();
     setIsOfflineMode(!isOnline);
@@ -81,6 +90,8 @@ const AdminLogin = () => {
         description: "Não foi possível conectar ao servidor. Continuando em modo offline.",
       });
     }
+    
+    setIsLoading(false);
   };
 
   if (isLoading) {

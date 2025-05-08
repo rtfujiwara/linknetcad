@@ -1,6 +1,11 @@
+
 import { User, Permission } from "@/types/user";
 import { syncStorage } from "@/utils/syncStorage";
 import { userManagerUtils } from "@/components/admin/managerUtils";
+
+// Credenciais padrão de administrador
+const DEFAULT_ADMIN_USERNAME = "admin";
+const DEFAULT_ADMIN_PASSWORD = "admin";
 
 /**
  * Actions for authentication
@@ -21,9 +26,10 @@ export const authActions = {
     setIsLoading(true);
     try {
       // Tenta verificar a conexão com o Firebase
+      let isOnline = false;
       try {
-        await syncStorage.checkConnection();
-        setIsOfflineMode(false);
+        isOnline = await syncStorage.checkConnection();
+        setIsOfflineMode(!isOnline);
       } catch (error) {
         console.warn("Funcionando em modo offline:", error);
         setIsOfflineMode(true);
@@ -31,38 +37,86 @@ export const authActions = {
 
       // Obtém a lista de usuários
       let users: User[] = [];
+      let adminUserFound = false;
       
       try {
         users = await userManagerUtils.getUsers();
         console.log("Usuários carregados do servidor com sucesso");
+        
+        // Verifica se existe algum usuário admin
+        adminUserFound = users.some(u => u.isAdmin);
       } catch (error) {
         console.error("Erro ao obter usuários do servidor:", error);
         
         // Em caso de erro, tenta usar os dados do localStorage
-        users = userManagerUtils.getUsersSync();
-        console.log("Usuários carregados do localStorage");
-        
-        if (users.length === 0 && username === "admin" && password === "admin") {
-          // Cria um usuário admin padrão se não houver usuários e as credenciais forem as padrão
-          const adminUser: User = {
-            id: 1,
-            username: "admin",
-            password: "admin",
-            name: "Administrador",
-            isAdmin: true,
-            permissions: ["view_clients", "edit_clients", "print_clients", "delete_data", "manage_plans", "manage_users"]
-          };
-          
-          users = [adminUser];
-          
-          // Tenta salvar o usuário admin no localStorage
-          try {
-            await syncStorage.setItem("users", users);
-            console.log("Usuário admin salvo com sucesso");
-          } catch (e) {
-            console.error("Erro ao salvar usuário admin:", e);
-          }
+        try {
+          users = userManagerUtils.getUsersSync();
+          console.log("Usuários carregados do localStorage");
+          adminUserFound = users.some(u => u.isAdmin);
+        } catch (err) {
+          console.error("Erro ao obter usuários do localStorage:", err);
         }
+      }
+      
+      // Se estamos em modo offline e utilizando credenciais padrão
+      if (!isOnline && username === DEFAULT_ADMIN_USERNAME && password === DEFAULT_ADMIN_PASSWORD) {
+        // Cria um usuário admin padrão temporário para acesso offline
+        const adminUser: User = {
+          id: 1,
+          username: DEFAULT_ADMIN_USERNAME,
+          password: DEFAULT_ADMIN_PASSWORD,
+          name: "Administrador",
+          isAdmin: true,
+          permissions: ["view_clients", "edit_clients", "print_clients", "delete_data", "manage_plans", "manage_users"]
+        };
+        
+        // Armazena o admin temporário no localStorage para uso offline
+        localStorage.setItem("currentUser", JSON.stringify(adminUser));
+        setCurrentUser(adminUser);
+        
+        toast({
+          title: "Login realizado em modo offline",
+          description: "Você está utilizando o acesso de emergência. Algumas funcionalidades podem estar limitadas.",
+        });
+        
+        navigate("/admin/dashboard");
+        return;
+      }
+      
+      // Se não há usuários cadastrados e são credenciais padrão
+      if (users.length === 0 && username === DEFAULT_ADMIN_USERNAME && password === DEFAULT_ADMIN_PASSWORD) {
+        // Cria um usuário admin padrão
+        const adminUser: User = {
+          id: 1,
+          username: DEFAULT_ADMIN_USERNAME,
+          password: DEFAULT_ADMIN_PASSWORD,
+          name: "Administrador",
+          isAdmin: true,
+          permissions: ["view_clients", "edit_clients", "print_clients", "delete_data", "manage_plans", "manage_users"]
+        };
+        
+        users = [adminUser];
+        
+        // Tenta salvar o usuário admin no localStorage
+        try {
+          await syncStorage.setItem("users", users);
+          console.log("Usuário admin salvo com sucesso");
+        } catch (e) {
+          console.error("Erro ao salvar usuário admin:", e);
+          // Mesmo com erro, permite login no modo offline
+          localStorage.setItem("users", JSON.stringify(users));
+        }
+        
+        setCurrentUser(adminUser);
+        localStorage.setItem("currentUser", JSON.stringify(adminUser));
+        
+        toast({
+          title: "Primeiro acesso realizado",
+          description: "Conta de administrador criada com sucesso.",
+        });
+        
+        navigate("/admin/dashboard");
+        return;
       }
       
       // Procura por um usuário com o nome de usuário e senha fornecidos

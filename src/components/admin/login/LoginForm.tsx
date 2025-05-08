@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { syncStorage } from "@/utils/syncStorage";
+import { AlertCircle, Info } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface LoginFormProps {
   showCreateAdmin: boolean;
@@ -13,7 +16,7 @@ interface LoginFormProps {
 }
 
 export const LoginForm = ({ showCreateAdmin, isOfflineMode, onRetryConnection }: LoginFormProps) => {
-  const [credentials, setCredentials] = useState({ username: "", password: "" });
+  const [credentials, setCredentials] = useState({ username: "admin", password: "admin" });
   const { login } = useAuth();
   const { toast } = useToast();
 
@@ -55,6 +58,15 @@ export const LoginForm = ({ showCreateAdmin, isOfflineMode, onRetryConnection }:
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {isOfflineMode && (
+        <Alert variant="warning" className="bg-yellow-50 border-yellow-200">
+          <Info className="h-4 w-4 text-yellow-600" />
+          <AlertDescription className="text-yellow-700">
+            Modo offline detectado. Use as credenciais padrão: <strong>admin / admin</strong>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="username" className="text-blue-900">Usuário</Label>
         <Input
@@ -99,9 +111,9 @@ export const LoginForm = ({ showCreateAdmin, isOfflineMode, onRetryConnection }:
       </Button>
       
       {isOfflineMode && !showCreateAdmin && (
-        <div className="text-sm text-center text-gray-600">
-          <p>Se você já tem uma conta mas não consegue fazer login, tente usar:</p>
-          <p className="font-medium">Usuário: admin | Senha: admin</p>
+        <div className="text-sm text-center space-y-1">
+          <p className="text-gray-600">Usando o sistema em modo offline.</p>
+          <p className="font-medium text-blue-600">Usuário: admin | Senha: admin</p>
         </div>
       )}
     </form>
