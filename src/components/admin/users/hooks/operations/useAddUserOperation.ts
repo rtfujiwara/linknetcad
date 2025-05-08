@@ -2,9 +2,9 @@
 import { User } from "@/types/user";
 import { useToast } from "@/components/ui/use-toast";
 import { syncStorage } from "@/utils/syncStorage";
-import { useErrorHandling } from "./utils/errorHandlers";
+import { useErrorHandling } from "../utils/errorHandlers";
 
-export const useAddUser = (users: User[], setUsers: (users: User[]) => void) => {
+export const useAddUserOperation = (users: User[], setUsers: (users: User[]) => void) => {
   const { toast } = useToast();
   const { logError, showErrorToast } = useErrorHandling();
 

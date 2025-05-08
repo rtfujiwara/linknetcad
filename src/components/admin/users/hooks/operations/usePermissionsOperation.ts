@@ -2,10 +2,10 @@
 import { User, Permission } from "@/types/user";
 import { useToast } from "@/components/ui/use-toast";
 import { syncStorage } from "@/utils/syncStorage";
-import { useErrorHandling } from "./utils/errorHandlers";
-import { useConnectionCheck } from "./utils/connectionCheck";
+import { useErrorHandling } from "../utils/errorHandlers";
+import { useConnectionCheck } from "../utils/connectionCheck";
 
-export const usePermissionsManagement = (
+export const usePermissionsOperation = (
   users: User[], 
   setUsers: (users: User[]) => void, 
   isOfflineMode: boolean

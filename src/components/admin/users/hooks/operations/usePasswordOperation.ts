@@ -2,11 +2,11 @@
 import { User } from "@/types/user";
 import { useToast } from "@/components/ui/use-toast";
 import { syncStorage } from "@/utils/syncStorage";
-import { useErrorHandling } from "./utils/errorHandlers";
-import { useConnectionCheck } from "./utils/connectionCheck";
+import { useErrorHandling } from "../utils/errorHandlers";
+import { useConnectionCheck } from "../utils/connectionCheck";
 import { userManagerUtils } from "@/components/admin/managerUtils";
 
-export const usePasswordManagement = (
+export const usePasswordOperation = (
   users: User[], 
   setUsers: (users: User[]) => void, 
   isOfflineMode: boolean
