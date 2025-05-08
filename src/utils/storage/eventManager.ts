@@ -24,16 +24,24 @@ export const addChangeListener = (callback: (key: string, value: any) => void): 
   
   // Also listen for Firebase changes if available
   const firebaseKeys = ["users", "clients", "plans"];
-  const firebaseUnsubscribes = addFirebaseListeners(firebaseKeys, (key, value) => {
+  let firebaseUnsubscribes: (() => void)[] = [];
+  
+  // Inicializa os ouvintes Firebase e armazena as funções de cancelamento
+  addFirebaseListeners(firebaseKeys, (key, value) => {
     // Update localStorage as cache
     saveToLocalStorage(key, value);
     // Notify the change
     callback(key, value);
+  }).then(unsubscribes => {
+    firebaseUnsubscribes = unsubscribes;
+  }).catch(error => {
+    console.error("Erro ao configurar listeners do Firebase:", error);
   });
   
   // Return a function that removes all listeners
   return () => {
     window.removeEventListener('storage-change', handler as EventListener);
+    // Cancela os ouvintes do Firebase, se existirem
     firebaseUnsubscribes.forEach(unsubscribe => unsubscribe());
   };
 };
