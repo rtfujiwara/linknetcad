@@ -22,7 +22,7 @@ export const useAuthInit = (
       
       setIsLoading(true);
       
-      // Estabelecer um timeout para garantir que a inicialização não fique travada
+      // Estabelecer um timeout mais curto para garantir que a interface não fique travada
       const initTimeout = setTimeout(() => {
         if (!isMounted) return;
         
@@ -43,13 +43,19 @@ export const useAuthInit = (
         if (isMounted) {
           setIsLoading(false);
         }
-      }, 5000);
+      }, 3000); // Reduzido de 5s para 3s para melhor responsividade
       
       try {
-        // Tenta verificar a conexão com o Firebase
+        // Tenta verificar a conexão com o Firebase mais rapidamente
         let isConnected = false;
         try {
-          isConnected = await checkConnection();
+          isConnected = await Promise.race([
+            checkConnection(),
+            new Promise<boolean>((resolve) => {
+              setTimeout(() => resolve(false), 2000); // Timeout mais curto
+            })
+          ]);
+          
           if (isMounted) {
             setIsOfflineMode(!isConnected);
           }
@@ -63,7 +69,13 @@ export const useAuthInit = (
         // Inicializa dados padrão se necessário
         try {
           if (isMounted) {
-            await initializeDefaultData();
+            // Usa timeout para evitar espera excessiva
+            await Promise.race([
+              initializeDefaultData(),
+              new Promise<boolean>((resolve) => {
+                setTimeout(() => resolve(false), 2000);
+              })
+            ]);
           }
         } catch (error) {
           console.warn("Erro ao inicializar dados:", error);
@@ -101,10 +113,21 @@ export const useAuthInit = (
 
     checkAuth();
     
+    // Configura uma verificação periódica de conectividade
+    const periodicCheck = setInterval(() => {
+      if (isMounted) {
+        checkConnection().then(isConnected => {
+          if (isMounted) {
+            setIsOfflineMode(!isConnected);
+          }
+        });
+      }
+    }, 30000); // Verifica a cada 30 segundos
+    
     // Limpeza do useEffect
     return () => {
       isMounted = false;
-      // Não deixar nenhum estado ser atualizado após o componente ser desmontado
+      clearInterval(periodicCheck); // Limpa o intervalo de verificação
     };
   }, [setCurrentUser, setIsLoading, setIsOfflineMode, checkConnection, initializeDefaultData, toast]);
 };
