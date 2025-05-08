@@ -6,12 +6,20 @@ import { ref, set, get, onValue, remove } from "firebase/database";
 import { getFirebaseDatabase, checkFirebaseConnection } from "../firebase/init";
 
 /**
+ * Get Firebase database instance safely
+ */
+const getDatabase = async () => {
+  const db = await getFirebaseDatabase();
+  return db;
+};
+
+/**
  * Save data to Firebase Realtime Database
  */
 export const saveToFirebase = async <T>(key: string, value: T): Promise<boolean> => {
   try {
     // Check connection before trying to sync
-    const database = getFirebaseDatabase();
+    const database = await getDatabase();
     
     if (!database) {
       console.warn("Firebase database indisponível, salvando apenas localmente");
@@ -40,7 +48,7 @@ export const saveToFirebase = async <T>(key: string, value: T): Promise<boolean>
 export const getFromFirebase = async <T>(key: string): Promise<{ data: T; exists: boolean }> => {
   try {
     // Check connection before trying to get from Firebase
-    const database = getFirebaseDatabase();
+    const database = await getDatabase();
     
     if (!database) {
       console.warn("Firebase database indisponível, usando apenas dados locais");
@@ -74,7 +82,7 @@ export const getFromFirebase = async <T>(key: string): Promise<{ data: T; exists
 export const removeFromFirebase = async (key: string): Promise<boolean> => {
   try {
     // Check connection before trying to remove from Firebase
-    const database = getFirebaseDatabase();
+    const database = await getDatabase();
     
     if (!database) {
       console.warn("Firebase database indisponível, removendo apenas localmente");
@@ -94,11 +102,11 @@ export const removeFromFirebase = async (key: string): Promise<boolean> => {
 /**
  * Add Firebase change listeners
  */
-export const addFirebaseListeners = (keys: string[], callback: (key: string, value: any) => void): (() => void)[] => {
+export const addFirebaseListeners = async (keys: string[], callback: (key: string, value: any) => void): Promise<(() => void)[]> => {
   const unsubscribeCallbacks: (() => void)[] = [];
   
   try {
-    const database = getFirebaseDatabase();
+    const database = await getDatabase();
     
     if (!database) {
       return unsubscribeCallbacks;
