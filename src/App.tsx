@@ -11,6 +11,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import React, { useEffect } from "react";
+import { syncStorage } from "./utils/syncStorage";
 
 // Cria uma nova instância do QueryClient com configuração de retry
 const queryClient = new QueryClient({
@@ -24,9 +25,29 @@ const queryClient = new QueryClient({
   },
 });
 
+// Inicia conexão Firebase imediatamente ao carregar o módulo
+syncStorage.checkConnection().catch(err => console.warn("Erro na verificação inicial de conexão:", err));
+
 const App = () => {
-  // Registra listener para erros não tratados
+  // Inicializa conexão e dados logo no carregamento da aplicação
   useEffect(() => {
+    const initApp = async () => {
+      try {
+        // Tenta estabelecer conexão sem mostrar erros ao usuário
+        await syncStorage.checkConnection();
+        
+        // Tenta inicializar dados padrão sem bloquear a interface
+        syncStorage.initializeDefaultData().catch(err => {
+          console.warn("Erro ao inicializar dados padrão:", err);
+        });
+      } catch (error) {
+        console.warn("Erro na inicialização:", error);
+      }
+    };
+    
+    initApp();
+    
+    // Registra listener para erros não tratados
     const handleError = (event: ErrorEvent) => {
       console.error("Erro não tratado capturado:", event.error);
     };

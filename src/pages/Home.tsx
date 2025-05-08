@@ -2,8 +2,27 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { syncStorage } from "@/utils/syncStorage";
 
 const Home = () => {
+  // Inicializa a conexão com o Firebase assim que a página inicial for carregada
+  useEffect(() => {
+    // Inicia o processo de conexão e inicialização em segundo plano
+    const initializeConnection = async () => {
+      try {
+        await syncStorage.checkConnection();
+        await syncStorage.initializeDefaultData();
+        console.log("Conexão e dados inicializados na página inicial");
+      } catch (error) {
+        console.warn("Erro na inicialização em segundo plano:", error);
+      }
+    };
+    
+    // Executa em segundo plano sem bloquear a interface
+    initializeConnection();
+  }, []);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}

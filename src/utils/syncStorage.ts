@@ -17,12 +17,17 @@ export const syncStorage: StorageInterface = {
   initializeDefaultData
 };
 
-// Initialize the system on module load
+// Initialize the system on module load and attempt connection immediately
 (async () => {
   try {
-    // Try to initialize Firebase
-    initializeFirebase();
-    // We'll initialize default data when needed, not on module load
+    // Try to initialize Firebase immediately
+    const db = await initializeFirebase();
+    console.log("Firebase inicializado na carga do módulo:", !!db);
+    
+    // Initialize default data in background
+    initializeDefaultData().catch(err => {
+      console.warn("Erro ao inicializar dados padrão:", err);
+    });
   } catch (error) {
     console.error("Erro na inicialização do syncStorage:", error);
   }

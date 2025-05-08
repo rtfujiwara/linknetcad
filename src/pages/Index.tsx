@@ -55,19 +55,19 @@ const Index = () => {
   const [plans, setPlans] = useState<{ id: number; name: string; price: number; description: string; }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
-  const [isOfflineMode, setIsOfflineMode] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Efeito para carregar os planos e estabelecer conexão
   useEffect(() => {
     const loadPlans = async () => {
       setIsLoading(true);
       setIsError(false);
       
       try {
-        const isOnline = await syncStorage.checkConnection();
-        setIsOfflineMode(!isOnline);
+        // Tenta inicializar a conexão em segundo plano
+        await syncStorage.checkConnection();
         
         if (!isInitialized) {
           await syncStorage.initializeDefaultData();
@@ -83,7 +83,8 @@ const Index = () => {
         const savedPlans = await Promise.race([plansPromise, timeoutPromise]);
         setPlans(savedPlans || []);
         
-        if (savedPlans && savedPlans.length === 0 && isOnline) {
+        if (savedPlans && savedPlans.length === 0) {
+          // Tenta inicializar dados padrão novamente
           await syncStorage.initializeDefaultData();
           const defaultPlans = await syncStorage.getItem("plans", []);
           setPlans(defaultPlans);
@@ -92,8 +93,8 @@ const Index = () => {
       } catch (error) {
         console.error("Erro ao carregar planos:", error);
         setIsError(true);
-        setIsOfflineMode(true);
         
+        // Em caso de erro, tenta carregar do armazenamento local
         const localPlans = syncStorage.getItemSync<{ id: number; name: string; price: number; description: string; }[]>("plans", []);
         setPlans(localPlans);
         
@@ -101,7 +102,7 @@ const Index = () => {
           toast({
             variant: "destructive",
             title: "Erro de conexão",
-            description: "Não foi possível carregar os planos. Funcionando em modo offline com recursos limitados.",
+            description: "Não foi possível carregar os planos. Por favor, tente novamente.",
           });
         }
       } finally {
@@ -119,31 +120,6 @@ const Index = () => {
 
     return () => unsubscribe();
   }, [toast]);
-
-  const retryConnection = async () => {
-    toast({
-      title: "Verificando conexão",
-      description: "Tentando reconectar ao servidor...",
-    });
-    
-    const isOnline = await syncStorage.checkConnection();
-    setIsOfflineMode(!isOnline);
-    
-    if (isOnline) {
-      toast({
-        title: "Conexão restabelecida",
-        description: "Carregando planos do servidor...",
-      });
-      
-      window.location.reload();
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Falha na conexão",
-        description: "Não foi possível conectar ao servidor. Continuando em modo offline.",
-      });
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,9 +162,7 @@ const Index = () => {
       
       toast({
         title: "Cadastro realizado com sucesso!",
-        description: isOfflineMode 
-          ? "Seus dados foram salvos localmente e serão sincronizados quando a conexão for restabelecida." 
-          : "Seus dados foram salvos.",
+        description: "Seus dados foram salvos.",
       });
       
       setTimeout(() => {
@@ -256,18 +230,6 @@ const Index = () => {
             Cadastro de Cliente
           </h1>
           
-          {isOfflineMode && (
-            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4 flex justify-between items-center">
-              <p>Funcionando em modo offline. Dados serão sincronizados quando a conexão for restabelecida.</p>
-              <button 
-                onClick={retryConnection}
-                className="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600 transition-colors"
-              >
-                Tentar reconectar
-              </button>
-            </div>
-          )}
-          
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite] text-blue-500" role="status">
@@ -283,7 +245,7 @@ const Index = () => {
               <p className="text-gray-600 mb-6">Não foi possível conectar ao servidor para carregar os planos.</p>
               <div className="space-y-4">
                 <button
-                  onClick={retryConnection}
+                  onClick={() => window.location.reload()}
                   className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                 >
                   Tentar novamente
