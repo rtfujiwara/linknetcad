@@ -1,3 +1,4 @@
+
 import { Client } from "@/types/client";
 import { Plan } from "@/types/plan";
 import { User } from "@/types/user";
@@ -39,6 +40,10 @@ export const planManagerUtils = {
 export const userManagerUtils = {
   async getUsers(): Promise<User[]> {
     return await syncStorage.getItem<User[]>("users", []);
+  },
+  
+  getUsersSync(): User[] {
+    return syncStorage.getItemSync<User[]>("users", []);
   },
   
   async saveUsers(users: User[]): Promise<void> {

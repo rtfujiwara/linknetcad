@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { User, Permission } from "@/types/user";
+import { User } from "@/types/user";
 import { useToast } from "@/components/ui/use-toast";
 import { userManagerUtils } from "@/components/admin/managerUtils";
 import { syncStorage } from "@/utils/syncStorage";
