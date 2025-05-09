@@ -25,7 +25,7 @@ interface ChangePasswordDialogProps {
     userId: number,
     currentPassword: string, 
     newPassword: string
-  ) => void;
+  ) => Promise<boolean>;
 }
 
 export const ChangePasswordDialog = ({

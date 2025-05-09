@@ -49,3 +49,11 @@ export interface StorageInterface {
    */
   resetConnectionCheck?: () => void;
 }
+
+/**
+ * Storage event interface
+ */
+export interface StorageEvent<T> {
+  timestamp: number;
+  data: T;
+}

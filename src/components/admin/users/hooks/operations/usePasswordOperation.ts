@@ -15,7 +15,7 @@ export const usePasswordOperation = (
   const { logError, showErrorToast } = useErrorHandling();
   const { checkOfflineAccess } = useConnectionCheck(isOfflineMode);
 
-  const handleChangePassword = async (userId: number, currentPassword: string, newPassword: string) => {
+  const handleChangePassword = async (userId: number, currentPassword: string, newPassword: string): Promise<boolean> => {
     // Mesmo offline, deve permitir que usuários alterem suas próprias senhas
     const isSelfPasswordChange = users.find(u => u.id === userId)?.username === 
       JSON.parse(localStorage.getItem("currentUser") || "{}")?.username;
