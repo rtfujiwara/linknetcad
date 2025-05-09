@@ -8,25 +8,32 @@ import { checkFirebaseConnection, getConnectionStatus, resetFirebaseInitializati
 let connectionCheckInProgress = false;
 let lastConnectionAttempt = 0;
 let reconnectionTimer: ReturnType<typeof setTimeout> | null = null;
-const CONNECTION_RETRY_INTERVAL = 3000; // Reduzido para 3 segundos para resposta mais rápida
-const MAX_RETRY_ATTEMPTS = 3; // Reduzido para 3 tentativas
+const CONNECTION_RETRY_INTERVAL = 2000; // Reduzido para 2 segundos
+const MAX_RETRY_ATTEMPTS = 3;
 let currentRetryAttempts = 0;
+let cachedConnectionStatus: boolean | null = null;
+let lastSuccessfulConnectionTime = 0;
+
+// Tempo de cache da conexão (15 segundos)
+const CONNECTION_CACHE_TTL = 15000;
 
 /**
  * Check connection and return boolean status
- * Modificado para ser mais silencioso e eficiente
  */
 export const checkConnection = async (): Promise<boolean> => {
-  // Verifica se há um status de conexão armazenado em cache
-  const cachedStatus = getConnectionStatus();
-  if (cachedStatus !== null && cachedStatus === true) {
-    return cachedStatus;
+  // Verifica se temos um status de conexão em cache recente
+  const now = Date.now();
+  if (cachedConnectionStatus === true && 
+      (now - lastSuccessfulConnectionTime < CONNECTION_CACHE_TTL)) {
+    return true;
   }
   
+  // Verifica se há um status de conexão armazenado em cache
+  const storedStatus = getConnectionStatus();
+  
   // Previne verificações muito próximas
-  const now = Date.now();
   if (connectionCheckInProgress || (now - lastConnectionAttempt < CONNECTION_RETRY_INTERVAL)) {
-    return cachedStatus || false;
+    return cachedConnectionStatus || storedStatus || false;
   }
   
   connectionCheckInProgress = true;
@@ -40,7 +47,7 @@ export const checkConnection = async (): Promise<boolean> => {
       currentRetryAttempts = 0;
     }
 
-    // Use a timeout to prevent hanging (reduzido para 1.5 segundos para maior responsividade)
+    // Use a timeout to prevent hanging (reduzido para 1.5 segundos)
     const isConnected = await Promise.race([
       checkFirebaseConnection(),
       new Promise<boolean>((resolve) => {
@@ -49,6 +56,14 @@ export const checkConnection = async (): Promise<boolean> => {
         }, 1500);
       })
     ]);
+    
+    // Atualiza o status em cache
+    cachedConnectionStatus = isConnected;
+    
+    if (isConnected) {
+      lastSuccessfulConnectionTime = now;
+      currentRetryAttempts = 0; // Reset counter on success
+    }
     
     connectionCheckInProgress = false;
     return isConnected;
@@ -61,10 +76,34 @@ export const checkConnection = async (): Promise<boolean> => {
 
 /**
  * Reset connection check status
- * Útil quando queremos forçar uma nova verificação de conexão
  */
 export const resetConnectionCheck = () => {
   connectionCheckInProgress = false;
   lastConnectionAttempt = 0;
+  cachedConnectionStatus = null; // Limpa o cache de status
   resetFirebaseInitialization();
+};
+
+/**
+ * Check if we're allowed to operate offline for critical operations
+ */
+export const canOperateOffline = (operationType: 'read' | 'write' | 'admin'): boolean => {
+  // Leituras sempre permitidas offline
+  if (operationType === 'read') return true;
+  
+  // Escritas de alterações simples permitidas em modo offline
+  if (operationType === 'write') {
+    // Pode verificar o tamanho atual dos dados para evitar inconsistências graves
+    return true;
+  }
+  
+  // Operações administrativas importantes (como mudar senhas de outros usuários)
+  // geralmente não são permitidas offline
+  if (operationType === 'admin') {
+    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    // Apenas admin master pode fazer operações admin offline
+    return currentUser?.isAdmin === true && currentUser?.username === 'admin';
+  }
+  
+  return false;
 };

@@ -25,10 +25,15 @@ export const authActions = {
   ): Promise<void> => {
     setIsLoading(true);
     try {
-      // Tenta verificar a conexão com o Firebase
+      // Tenta verificar a conexão com o Firebase - com timeout reduzido
       let isOnline = false;
       try {
-        isOnline = await syncStorage.checkConnection();
+        const connectPromise = syncStorage.checkConnection();
+        const timeoutPromise = new Promise<boolean>((resolve) => {
+          setTimeout(() => resolve(false), 2000);
+        });
+        
+        isOnline = await Promise.race([connectPromise, timeoutPromise]);
         setIsOfflineMode(!isOnline);
       } catch (error) {
         console.warn("Funcionando em modo offline:", error);
@@ -40,11 +45,20 @@ export const authActions = {
       let adminUserFound = false;
       
       try {
-        users = await userManagerUtils.getUsers();
-        console.log("Usuários carregados do servidor com sucesso");
-        
-        // Verifica se existe algum usuário admin
-        adminUserFound = users.some(u => u.isAdmin);
+        // Tenta obter usuários do servidor - com retry
+        for (let i = 0; i < 2; i++) {
+          try {
+            users = await userManagerUtils.getUsers();
+            console.log("Usuários carregados do servidor com sucesso");
+            // Verifica se existe algum usuário admin
+            adminUserFound = users.some(u => u.isAdmin);
+            break;
+          } catch (err) {
+            if (i === 1) throw err;
+            // Em primeira falha, tenta reconectar
+            await syncStorage.checkConnection();
+          }
+        }
       } catch (error) {
         console.error("Erro ao obter usuários do servidor:", error);
         
@@ -58,29 +72,32 @@ export const authActions = {
         }
       }
       
-      // Se estamos em modo offline e utilizando credenciais padrão
-      if (!isOnline && username === DEFAULT_ADMIN_USERNAME && password === DEFAULT_ADMIN_PASSWORD) {
-        // Cria um usuário admin padrão temporário para acesso offline
-        const adminUser: User = {
-          id: 1,
-          username: DEFAULT_ADMIN_USERNAME,
-          password: DEFAULT_ADMIN_PASSWORD,
-          name: "Administrador",
-          isAdmin: true,
-          permissions: ["view_clients", "edit_clients", "print_clients", "delete_data", "manage_plans", "manage_users"]
-        };
-        
-        // Armazena o admin temporário no localStorage para uso offline
-        localStorage.setItem("currentUser", JSON.stringify(adminUser));
-        setCurrentUser(adminUser);
-        
-        toast({
-          title: "Login realizado em modo offline",
-          description: "Você está utilizando o acesso de emergência. Algumas funcionalidades podem estar limitadas.",
-        });
-        
-        navigate("/admin/dashboard");
-        return;
+      // Credenciais de admin padrão para acesso offline
+      if (username === DEFAULT_ADMIN_USERNAME && password === DEFAULT_ADMIN_PASSWORD) {
+        // Se não estamos online OU não há usuários cadastrados, permitimos login com admin padrão
+        if (!isOnline || users.length === 0) {
+          // Cria um usuário admin padrão temporário para acesso offline
+          const adminUser: User = {
+            id: 1,
+            username: DEFAULT_ADMIN_USERNAME,
+            password: DEFAULT_ADMIN_PASSWORD,
+            name: "Administrador",
+            isAdmin: true,
+            permissions: ["view_clients", "edit_clients", "print_clients", "delete_data", "manage_plans", "manage_users"]
+          };
+          
+          // Armazena o admin temporário no localStorage para uso offline
+          localStorage.setItem("currentUser", JSON.stringify(adminUser));
+          setCurrentUser(adminUser);
+          
+          toast({
+            title: "Login realizado em modo offline",
+            description: "Você está utilizando o acesso de emergência. Algumas funcionalidades podem estar limitadas.",
+          });
+          
+          navigate("/admin/dashboard");
+          return;
+        }
       }
       
       // Se não há usuários cadastrados e são credenciais padrão
@@ -192,16 +209,42 @@ export const authActions = {
     toast: any
   ): Promise<boolean> => {
     setIsLoading(true);
+    
+    // Limpa cache de conexão para forçar nova tentativa
+    syncStorage.resetConnectionCheck?.();
+    
     try {
-      await syncStorage.checkConnection();
-      setIsOfflineMode(false);
+      // Tenta restabelecer a conexão com o Firebase - com múltiplas tentativas
+      let isConnected = false;
+      for (let i = 0; i < 3; i++) {
+        try {
+          // Tenta com timeout curto para responsividade
+          const connectPromise = syncStorage.checkConnection();
+          const timeoutPromise = new Promise<boolean>((resolve) => {
+            setTimeout(() => resolve(false), 1500);
+          });
+          
+          isConnected = await Promise.race([connectPromise, timeoutPromise]);
+          if (isConnected) break;
+        } catch (err) {
+          console.warn(`Tentativa ${i+1} de reconexão falhou:`, err);
+          // Pequena pausa entre tentativas
+          await new Promise(r => setTimeout(r, 300));
+        }
+      }
       
-      toast({
-        title: "Conexão restabelecida",
-        description: "A conexão com o servidor foi restabelecida com sucesso.",
-      });
+      setIsOfflineMode(!isConnected);
       
-      return true;
+      if (isConnected) {
+        toast({
+          title: "Conexão restabelecida",
+          description: "A conexão com o servidor foi restabelecida com sucesso.",
+        });
+      } else {
+        throw new Error("Não foi possível estabelecer conexão após múltiplas tentativas");
+      }
+      
+      return isConnected;
     } catch (error) {
       console.error("Erro ao tentar reconectar:", error);
       setIsOfflineMode(true);

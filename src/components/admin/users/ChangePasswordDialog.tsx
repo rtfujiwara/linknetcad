@@ -9,9 +9,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { User } from "@/types/user";
 import { PasswordData } from "./userConstants";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 interface ChangePasswordDialogProps {
   isOpen: boolean;
@@ -38,8 +41,17 @@ export const ChangePasswordDialog = ({
     newPassword: "",
     confirmPassword: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChangePassword = () => {
+  const isSelfPasswordChange = selectedUser?.id === currentUserId;
+  
+  // Verifica se o usuário logado é o admin master
+  const isAdminMaster = () => {
+    const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
+    return currentUser?.isAdmin === true && currentUser?.username === 'admin';
+  };
+
+  const handleChangePassword = async () => {
     if (!selectedUser) return;
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
@@ -60,30 +72,57 @@ export const ChangePasswordDialog = ({
       return;
     }
 
-    onChangePassword(
-      selectedUser.id, 
-      passwordData.currentPassword, 
-      passwordData.newPassword
-    );
+    setIsSubmitting(true);
+    
+    try {
+      const success = await onChangePassword(
+        selectedUser.id, 
+        passwordData.currentPassword, 
+        passwordData.newPassword
+      );
+      
+      if (success) {
+        onOpenChange(false);
+        
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    setPasswordData({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
+  // Reinicia os campos quando o dialog abre ou fecha
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    }
+    onOpenChange(open);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
             Alterar Senha {selectedUser && `- ${selectedUser.name}`}
           </DialogTitle>
+          {!isSelfPasswordChange && !isAdminMaster() && (
+            <DialogDescription className="text-amber-600">
+              Em modo offline, apenas o usuário admin pode alterar senhas de outros usuários.
+            </DialogDescription>
+          )}
         </DialogHeader>
         <div className="space-y-4">
           {/* Only show current password field if user is changing their own password */}
-          {selectedUser?.id === currentUserId && (
+          {isSelfPasswordChange && (
             <div>
               <Label htmlFor="currentPassword">Senha Atual</Label>
               <Input
@@ -127,8 +166,22 @@ export const ChangePasswordDialog = ({
               }
             />
           </div>
-          <Button onClick={handleChangePassword} className="w-full">
-            Salvar Nova Senha
+          {passwordData.newPassword && 
+           passwordData.newPassword.length > 0 && 
+           passwordData.newPassword.length < 4 && (
+            <Alert variant="destructive" className="py-2">
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                A senha deve ter pelo menos 4 caracteres
+              </AlertDescription>
+            </Alert>
+          )}
+          <Button 
+            onClick={handleChangePassword} 
+            className="w-full"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Salvando..." : "Salvar Nova Senha"}
           </Button>
         </div>
       </DialogContent>
