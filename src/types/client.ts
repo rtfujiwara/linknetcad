@@ -21,3 +21,5 @@ export interface Client {
   wifiName: string;
   wifiPassword: string;
 }
+
+export type ClientData = Omit<Client, 'id'>;
