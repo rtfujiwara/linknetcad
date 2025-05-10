@@ -12,7 +12,7 @@ interface ClientFormFieldsProps {
 }
 
 const ClientFormFields = ({ formData, plans, setFormData }: ClientFormFieldsProps) => {
-  const { errors, validateField } = useFieldValidation();
+  const { errors, validateField, validateAll, clearErrors } = useFieldValidation();
 
   return (
     <FormSections
@@ -26,4 +26,3 @@ const ClientFormFields = ({ formData, plans, setFormData }: ClientFormFieldsProp
 };
 
 export default ClientFormFields;
-

@@ -13,7 +13,7 @@ interface ContactFieldsProps {
 
 const ContactFields = ({ formData, setFormData, errors, validateField }: ContactFieldsProps) => {
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <FormField
         id="phone"
         label="Telefone"
@@ -41,4 +41,3 @@ const ContactFields = ({ formData, setFormData, errors, validateField }: Contact
 };
 
 export default ContactFields;
-

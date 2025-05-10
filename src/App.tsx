@@ -13,7 +13,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import React, { useEffect, useState } from "react";
 import { syncStorage } from "./utils/syncStorage";
 import { Alert, AlertTitle, AlertDescription } from "./components/ui/alert";
-import { AlertCircle, X } from "lucide-react";
+import { AlertCircle, X, RefreshCw } from "lucide-react";
 
 // Cria uma nova instância do QueryClient com configuração de retry
 const queryClient = new QueryClient({
@@ -36,6 +36,7 @@ syncStorage.checkConnection()
 const App = () => {
   const [showConnectionError, setShowConnectionError] = useState(false);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
   
   // Inicializa conexão e dados logo no carregamento da aplicação
   useEffect(() => {
@@ -51,7 +52,7 @@ const App = () => {
         if (!isConnected) {
           setConnectionAttempts(prev => prev + 1);
           
-          if (connectionAttempts >= 2) {
+          if (connectionAttempts >= 1) {
             setShowConnectionError(true);
           }
           
@@ -93,6 +94,7 @@ const App = () => {
   
   // Função para tentar reconectar manualmente
   const handleRetryConnection = async () => {
+    setIsRetrying(true);
     setShowConnectionError(false);
     
     try {
@@ -113,6 +115,8 @@ const App = () => {
     } catch (error) {
       console.error("Erro ao tentar reconectar manualmente:", error);
       setShowConnectionError(true);
+    } finally {
+      setIsRetrying(false);
     }
   };
   
@@ -133,9 +137,11 @@ const App = () => {
                           <p className="mb-2">Não foi possível conectar ao servidor. Algumas funcionalidades podem estar limitadas.</p>
                           <div className="flex gap-2">
                             <button 
-                              className="text-sm bg-white text-red-600 px-3 py-1 rounded border border-red-200 hover:bg-red-50"
+                              className="text-sm bg-white text-red-600 px-3 py-1 rounded border border-red-200 hover:bg-red-50 flex items-center gap-1"
                               onClick={handleRetryConnection}
+                              disabled={isRetrying}
                             >
+                              <RefreshCw className={`h-3 w-3 ${isRetrying ? "animate-spin" : ""}`} />
                               Tentar novamente
                             </button>
                             <button 

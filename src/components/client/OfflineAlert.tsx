@@ -22,8 +22,11 @@ const OfflineAlert = ({ onRetryConnection, isSubmitting }: OfflineAlertProps) =>
           size="sm" 
           className="bg-white text-yellow-700 border-yellow-400 hover:bg-yellow-50"
           onClick={onRetryConnection}
+          disabled={isSubmitting}
         >
-          <Loader2 className={`mr-2 h-4 w-4 ${isSubmitting ? "animate-spin" : ""}`} />
+          {isSubmitting ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : null}
           Tentar reconectar
         </Button>
       </AlertDescription>
