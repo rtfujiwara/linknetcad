@@ -14,10 +14,12 @@ import {
   checkConnection, 
   initializeDefaultData 
 } from "./storage/syncManager";
-import { resetConnectionCheck } from "./storage/connectionManager";
+import { resetConnectionCheck, startAutoReconnect, stopAutoReconnect } from "./storage/connectionManager";
 
 export const syncStorage: StorageInterface & {
   resetConnectionCheck?: () => void;
+  startAutoReconnect?: (callback?: () => void) => void;
+  stopAutoReconnect?: () => void;
 } = {
   setItem,
   getItem,
@@ -27,7 +29,9 @@ export const syncStorage: StorageInterface & {
   addChangeListener,
   checkConnection,
   initializeDefaultData,
-  resetConnectionCheck
+  resetConnectionCheck,
+  startAutoReconnect,
+  stopAutoReconnect
 };
 
 // Initialize the system on module load and attempt connection immediately
@@ -39,31 +43,45 @@ export const syncStorage: StorageInterface & {
     
     for (let i = 0; i < maxAttempts; i++) {
       try {
+        console.log(`Tentativa ${i+1} de inicializar Firebase na carga do módulo`);
         db = await initializeFirebase();
-        if (db) break;
+        if (db) {
+          console.log("Firebase inicializado com sucesso na carga do módulo");
+          break;
+        }
       } catch (err) {
         console.warn(`Tentativa ${i+1} falhou ao inicializar Firebase:`, err);
         // Pequena pausa entre tentativas
         if (i < maxAttempts - 1) {
-          await new Promise(r => setTimeout(r, 500));
+          await new Promise(r => setTimeout(r, 1000)); // Aumentado para 1s
         }
       }
     }
     
-    console.log("Firebase inicializado na carga do módulo:", !!db);
-    
     // Initialize default data in background with fast timeout
     try {
+      console.log("Tentando inicializar dados padrão...");
       const initPromise = initializeDefaultData();
       const timeoutPromise = new Promise<boolean>((resolve) => {
-        setTimeout(() => resolve(false), 3000);
+        setTimeout(() => resolve(false), 5000); // Aumentado para 5s
       });
       
-      await Promise.race([initPromise, timeoutPromise]);
+      const result = await Promise.race([initPromise, timeoutPromise]);
+      console.log("Inicialização de dados padrão:", result ? "Concluída" : "Tempo esgotado");
     } catch (err) {
       console.warn("Erro ao inicializar dados padrão:", err);
     }
+
+    // Inicia reconexão automática
+    startAutoReconnect();
   } catch (error) {
     console.error("Erro na inicialização do syncStorage:", error);
   }
 })();
+
+// Adiciona um evento para garantir limpeza de recursos ao fechar a página
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    stopAutoReconnect();
+  });
+}

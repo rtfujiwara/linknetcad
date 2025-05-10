@@ -5,12 +5,20 @@
 import { ref, set, get, onValue, remove } from "firebase/database";
 import { getFirebaseDatabase, checkFirebaseConnection } from "../firebase/init";
 
+// Cache para melhorar desempenho e funcionamento offline
+const dataCache = new Map<string, any>();
+
 /**
  * Get Firebase database instance safely
  */
 const getDatabase = async () => {
-  const db = await getFirebaseDatabase();
-  return db;
+  try {
+    const db = await getFirebaseDatabase();
+    return db;
+  } catch (e) {
+    console.error("Erro ao obter instância do Firebase Database:", e);
+    return null;
+  }
 };
 
 /**
@@ -32,6 +40,10 @@ export const saveToFirebase = async <T>(key: string, value: T): Promise<boolean>
       data: value,
     };
     
+    // Cache data first
+    dataCache.set(key, event);
+    
+    // Then persist to Firebase
     const dbRef = ref(database, key);
     await set(dbRef, event);
     console.log(`Dados sincronizados com Firebase: ${key}`);
@@ -52,7 +64,12 @@ export const getFromFirebase = async <T>(key: string): Promise<{ data: T; exists
     
     if (!database) {
       console.warn("Firebase database indisponível, usando apenas dados locais");
-      return { data: null as unknown as T, exists: false };
+      // Retorna do cache se disponível
+      const cachedData = dataCache.get(key);
+      return { 
+        data: cachedData ? cachedData.data as T : null as unknown as T, 
+        exists: !!cachedData 
+      };
     }
     
     // Try to get from Firebase with timeout
@@ -60,19 +77,33 @@ export const getFromFirebase = async <T>(key: string): Promise<{ data: T; exists
     const snapshot = await Promise.race([
       get(dbRef),
       new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error("Tempo esgotado ao buscar dados do banco de dados")), 5000)
+        setTimeout(() => reject(new Error("Tempo esgotado ao buscar dados do banco de dados")), 8000) // Aumentado para 8 segundos
       )
     ]);
     
     if (snapshot && snapshot.exists()) {
       const event = snapshot.val();
+      // Atualiza o cache
+      dataCache.set(key, event);
       return { data: event.data, exists: true };
+    }
+    
+    // Tenta do cache se Firebase não tem os dados
+    const cachedData = dataCache.get(key);
+    if (cachedData) {
+      return { data: cachedData.data as T, exists: true };
     }
     
     return { data: null as unknown as T, exists: false };
   } catch (error) {
     console.warn("Erro ao obter dados do Firebase:", error);
-    return { data: null as unknown as T, exists: false };
+    
+    // Tenta do cache em caso de erro
+    const cachedData = dataCache.get(key);
+    return { 
+      data: cachedData ? cachedData.data as T : null as unknown as T, 
+      exists: !!cachedData 
+    };
   }
 };
 
@@ -81,6 +112,9 @@ export const getFromFirebase = async <T>(key: string): Promise<{ data: T; exists
  */
 export const removeFromFirebase = async (key: string): Promise<boolean> => {
   try {
+    // Remove from cache first
+    dataCache.delete(key);
+    
     // Check connection before trying to remove from Firebase
     const database = await getDatabase();
     
@@ -118,6 +152,8 @@ export const addFirebaseListeners = async (keys: string[], callback: (key: strin
       const unsubscribe = onValue(dbRef, (snapshot) => {
         if (snapshot.exists()) {
           const event = snapshot.val();
+          // Atualiza o cache
+          dataCache.set(key, event);
           callback(key, event.data);
         }
       }, (error) => {
@@ -131,6 +167,14 @@ export const addFirebaseListeners = async (keys: string[], callback: (key: strin
   }
   
   return unsubscribeCallbacks;
+};
+
+/**
+ * Clear cache (útil para testes ou redefinições)
+ */
+export const clearCache = () => {
+  dataCache.clear();
+  console.log("Cache do Firebase limpo");
 };
 
 /**
