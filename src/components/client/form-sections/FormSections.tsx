@@ -8,14 +8,17 @@ import PersonalInfoFields from "./PersonalInfoFields";
 import AddressFields from "./AddressFields";
 import ContactFields from "./ContactFields";
 import ServiceFields from "./ServiceFields";
+import { ValidationError } from "@/hooks/useFieldValidation";
 
 interface FormSectionsProps {
   formData: ClientData;
   plans: Plan[];
   setFormData: React.Dispatch<React.SetStateAction<ClientData>>;
+  errors: Record<string, ValidationError>;
+  validateField: (field: string, value: string, type: 'document' | 'cep' | 'phone' | 'email' | 'required') => void;
 }
 
-const FormSections = ({ formData, plans, setFormData }: FormSectionsProps) => {
+const FormSections = ({ formData, plans, setFormData, errors, validateField }: FormSectionsProps) => {
   const [openSections, setOpenSections] = React.useState({
     personal: true,
     address: true,
@@ -42,7 +45,12 @@ const FormSections = ({ formData, plans, setFormData }: FormSectionsProps) => {
           {openSections.personal ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </CollapsibleTrigger>
         <CollapsibleContent className="p-2 space-y-4 pt-4">
-          <PersonalInfoFields formData={formData} setFormData={setFormData} />
+          <PersonalInfoFields 
+            formData={formData} 
+            setFormData={setFormData} 
+            errors={errors}
+            validateField={validateField}
+          />
         </CollapsibleContent>
       </Collapsible>
 
@@ -56,7 +64,12 @@ const FormSections = ({ formData, plans, setFormData }: FormSectionsProps) => {
           {openSections.address ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </CollapsibleTrigger>
         <CollapsibleContent className="p-2 space-y-4 pt-4">
-          <AddressFields formData={formData} setFormData={setFormData} />
+          <AddressFields 
+            formData={formData} 
+            setFormData={setFormData}
+            errors={errors}
+            validateField={validateField}
+          />
         </CollapsibleContent>
       </Collapsible>
 
@@ -70,7 +83,12 @@ const FormSections = ({ formData, plans, setFormData }: FormSectionsProps) => {
           {openSections.contact ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </CollapsibleTrigger>
         <CollapsibleContent className="p-2 space-y-4 pt-4">
-          <ContactFields formData={formData} setFormData={setFormData} />
+          <ContactFields 
+            formData={formData} 
+            setFormData={setFormData}
+            errors={errors}
+            validateField={validateField}
+          />
         </CollapsibleContent>
       </Collapsible>
 
@@ -84,7 +102,13 @@ const FormSections = ({ formData, plans, setFormData }: FormSectionsProps) => {
           {openSections.service ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </CollapsibleTrigger>
         <CollapsibleContent className="p-2 space-y-4 pt-4">
-          <ServiceFields formData={formData} plans={plans} setFormData={setFormData} />
+          <ServiceFields 
+            formData={formData} 
+            plans={plans} 
+            setFormData={setFormData}
+            errors={errors}
+            validateField={validateField}
+          />
         </CollapsibleContent>
       </Collapsible>
     </div>
@@ -92,3 +116,4 @@ const FormSections = ({ formData, plans, setFormData }: FormSectionsProps) => {
 };
 
 export default FormSections;
+

@@ -4,19 +4,46 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { syncStorage } from "@/utils/syncStorage";
 import { ClientData } from "@/types/client";
+import { useFieldValidation } from "@/hooks/useFieldValidation";
+import { validateDocument, validateCEP, validatePhone, validateEmail } from "@/utils/validations";
 
 export const useClientSubmit = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { validateAll, clearErrors } = useFieldValidation();
+
+  const validateAllFields = (formData: ClientData): boolean => {
+    // Define os campos que devem ser validados
+    const fieldsToValidate = [
+      { field: 'name', value: formData.name, type: 'required' as const },
+      { field: 'email', value: formData.email, type: 'email' as const },
+      { field: 'document', value: formData.document, type: 'document' as const },
+      { field: 'rgIe', value: formData.rgIe, type: 'required' as const },
+      { field: 'birthDate', value: formData.birthDate, type: 'required' as const },
+      { field: 'address', value: formData.address, type: 'required' as const },
+      { field: 'number', value: formData.number, type: 'required' as const },
+      { field: 'neighborhood', value: formData.neighborhood, type: 'required' as const },
+      { field: 'city', value: formData.city, type: 'required' as const },
+      { field: 'state', value: formData.state, type: 'required' as const },
+      { field: 'zipCode', value: formData.zipCode, type: 'cep' as const },
+      { field: 'phone', value: formData.phone, type: 'phone' as const },
+      { field: 'alternativePhone', value: formData.alternativePhone, type: formData.alternativePhone ? 'phone' as const : 'required' as const },
+      { field: 'plan', value: formData.plan, type: 'required' as const },
+      { field: 'dueDate', value: formData.dueDate, type: 'required' as const }
+    ];
+    
+    return validateAll(fieldsToValidate);
+  };
 
   const handleSubmit = async (formData: ClientData, isOffline: boolean) => {
-    if (!formData.name || !formData.document || !formData.phone || !formData.plan) {
+    // Validação de todos os campos usando o hook
+    if (!validateAllFields(formData)) {
       toast({
         variant: "destructive",
-        title: "Dados incompletos",
-        description: "Por favor, preencha todos os campos obrigatórios.",
+        title: "Dados inválidos",
+        description: "Por favor, corrija os campos destacados e tente novamente.",
       });
       return;
     }
@@ -163,3 +190,4 @@ export const useClientSubmit = () => {
     handleSubmit
   };
 };
+

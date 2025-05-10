@@ -3,6 +3,7 @@ import React from "react";
 import { ClientData } from "@/types/client";
 import { Plan } from "@/types/plan";
 import FormSections from "./form-sections/FormSections";
+import { useFieldValidation } from "@/hooks/useFieldValidation";
 
 interface ClientFormFieldsProps {
   formData: ClientData;
@@ -11,13 +12,18 @@ interface ClientFormFieldsProps {
 }
 
 const ClientFormFields = ({ formData, plans, setFormData }: ClientFormFieldsProps) => {
+  const { errors, validateField } = useFieldValidation();
+
   return (
     <FormSections
       formData={formData}
       plans={plans}
       setFormData={setFormData}
+      errors={errors}
+      validateField={validateField}
     />
   );
 };
 
 export default ClientFormFields;
+
